@@ -15,202 +15,223 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    
+
     return Scaffold(
       backgroundColor: context.colors.background,
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            _buildSliverAppBar(context, themeProvider),
+            // ── Sticky top bar: logo + theme toggle ──────────────
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _StickyHeaderDelegate(
+                child: _buildTopBar(context, themeProvider),
+              ),
+            ),
+            // ── Scrollable hero header ────────────────────────────
+            SliverToBoxAdapter(
+              child: _buildHeroHeader(context),
+            ),
+            // ── Content: empty state or recipe grid ──────────────
             SliverToBoxAdapter(
               child: Consumer<RecipeProvider>(
                 builder: (context, provider, _) {
                   if (provider.recipes.isEmpty) {
                     return _buildEmptyState(context);
                   }
-                  return const SizedBox.shrink(); // Handled by Grid below
+                  return const SizedBox.shrink();
                 },
               ),
             ),
             Consumer<RecipeProvider>(
               builder: (context, provider, _) {
-                if (provider.recipes.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+                if (provider.recipes.isEmpty) {
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
+                }
                 return _buildRecipeGrid(context, provider.recipes, provider);
               },
             ),
           ],
         ),
       ),
-      floatingActionButton: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.colors.primary.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
-            ),
-            child: FloatingActionButton.extended(
-              onPressed: () => _openRecipeForm(context),
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              hoverElevation: 0,
-              focusElevation: 0,
-              highlightElevation: 0,
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: Text(
-                'Thêm công thức',
-                style: context.textTheme.labelLarge!.copyWith(color: Colors.white),
-              ),
-            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openRecipeForm(context),
+        backgroundColor: context.colors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: const StadiumBorder(),
+        icon: const Icon(Icons.add_rounded),
+        label: Text(
+          'Thêm công thức',
+          style: context.textTheme.labelLarge!.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context, ThemeProvider themeProvider) {
+  // ── Top bar: brand wordmark left + theme icon right ─────────────────
+  Widget _buildTopBar(BuildContext context, ThemeProvider themeProvider) {
     final isDark = themeProvider.isDarkMode;
-    
-    // Determine greeting based on time
-    final hour = DateTime.now().hour;
-    String greeting;
-    if (hour < 12) {
-      greeting = 'Chào buổi sáng,';
-    } else if (hour < 18) {
-      greeting = 'Chào buổi chiều,';
-    } else {
-      greeting = 'Chào buổi tối,';
-    }
-
-    return SliverAppBar(
-      expandedHeight: 140,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      pinned: true,
-      flexibleSpace: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.colors.background.withValues(alpha: 0.7),
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              centerTitle: false,
-              title: Text(
-                'CookFlow',
-                style: context.textTheme.displayMedium!.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1,
-                  foreground: Paint()
-                    ..shader = LinearGradient(
-                      colors: [context.colors.primary, context.colors.primaryLight],
-                    ).createShader(const Rect.fromLTWH(0, 0, 160, 40)),
-                ),
-              ),
-              background: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      greeting,
-                      style: context.textTheme.bodyLarge!.copyWith(
-                        color: context.colors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Consumer<RecipeProvider>(
-                      builder: (context, provider, _) => Text(
-                        'Sẵn sàng nấu món mới chưa?',
-                        style: context.textTheme.headlineMedium!.copyWith(
-                          color: context.colors.textPrimary,
-                          letterSpacing: -0.5,
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          color: context.colors.background.withOpacity(0.88),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Logo + brand name
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/images/recipe.png',
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(width: 10),
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Cook',
+                          style: context.textTheme.headlineLarge!.copyWith(
+                            color: context.colors.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                          ),
                         ),
-                      ),
+                        TextSpan(
+                          text: 'flow',
+                          style: context.textTheme.headlineLarge!.copyWith(
+                            color: context.colors.primary,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              // Theme toggle — contained in a circle pill
+              GestureDetector(
+                onTap: () => themeProvider.toggleTheme(),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: context.colors.surfaceElevated,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                    size: 20,
+                    color: isDark
+                        ? const Color(0xFFFFC107)
+                        : context.colors.textSecondary,
+                  ),
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: IconButton(
-            onPressed: () => themeProvider.toggleTheme(),
-            icon: Icon(
-              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              color: isDark ? Colors.amber : context.colors.textPrimary,
-            ),
-            tooltip: 'Đổi giao diện',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 60, left: 24, right: 24),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(32),
-          gradient: RadialGradient(
-            center: const Alignment(0.8, -0.5),
-            radius: 1.5,
-            colors: [
-              context.colors.primary.withValues(alpha: 0.15),
-              context.colors.background,
             ],
           ),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 64),
+      ),
+    );
+  }
+
+  // ── Hero header: greeting + dynamic sub-headline ────────────────────
+  Widget _buildHeroHeader(BuildContext context) {
+    final hour = DateTime.now().hour;
+    final String greeting;
+    if (hour < 12) {
+      greeting = 'Chào buổi sáng 👋';
+    } else if (hour < 18) {
+      greeting = 'Chào buổi chiều 👋';
+    } else {
+      greeting = 'Chào buổi tối 👋';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            greeting,
+            style: context.textTheme.bodyLarge!.copyWith(
+              color: context.colors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Consumer<RecipeProvider>(
+            builder: (context, provider, _) {
+              final count = provider.recipes.length;
+              final headline = count == 0
+                  ? 'Bắt đầu tạo công thức\nđầu tiên của bạn.'
+                  : 'Bạn có $count công thức.';
+              return Text(
+                headline,
+                style: context.textTheme.displayMedium!.copyWith(
+                  height: 1.15,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Empty state ─────────────────────────────────────────────────────
+  Widget _buildEmptyState(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: context.colors.divider, width: 1),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
-                color: context.colors.primary.withValues(alpha: 0.1),
+                color: context.colors.surfaceElevated,
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.restaurant_rounded,
-                size: 36,
-                color: context.colors.primary,
+                Icons.restaurant_outlined,
+                size: 32,
+                color: context.colors.textHint,
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             Text(
               'Chưa có công thức nào',
-              style: context.textTheme.headlineLarge!.copyWith(
-                letterSpacing: -0.8,
-              ),
+              style: context.textTheme.headlineMedium,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              'Thêm công thức đầu tiên của bạn để bắt đầu.',
+              'Nhấn nút bên dưới để tạo\ncông thức đầu tiên của bạn.',
               style: context.textTheme.bodyMedium!.copyWith(
                 color: context.colors.textSecondary,
-                height: 1.5,
+                height: 1.6,
               ),
               textAlign: TextAlign.center,
             ),
@@ -225,16 +246,14 @@ class HomeScreen extends StatelessWidget {
     List<Recipe> recipes,
     RecipeProvider provider,
   ) {
-    // Group recipes into chunks: [1, 2, 1, 2...]
+    // Alternating rhythm: 1 full-width large card, then 2 small side-by-side
     final List<List<Recipe>> chunks = [];
     int i = 0;
     while (i < recipes.length) {
       if (chunks.length % 2 == 0) {
-        // Chunk of 1 large item
         chunks.add([recipes[i]]);
         i++;
       } else {
-        // Chunk of 2 small items
         if (i + 1 < recipes.length) {
           chunks.add([recipes[i], recipes[i + 1]]);
           i += 2;
@@ -246,20 +265,20 @@ class HomeScreen extends StatelessWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, chunkIndex) {
             final chunk = chunks[chunkIndex];
-            
+
             if (chunk.length == 1) {
               final recipe = chunk[0];
               final stepCount = (recipe.pages != null && recipe.pages!.isNotEmpty)
                   ? recipe.pages!.fold<int>(0, (sum, page) => sum + page.stepIds.length)
                   : recipe.stepIds.length;
-                  
+
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: 16),
                 child: RecipeCard(
                   recipe: recipe,
                   stepCount: stepCount,
@@ -269,18 +288,14 @@ class HomeScreen extends StatelessWidget {
                 ),
               );
             } else {
-              // 2 items row
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: 16),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _buildSmallCard(context, chunk[0], provider),
-                    ),
+                    Expanded(child: _buildSmallCard(context, chunk[0], provider)),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildSmallCard(context, chunk[1], provider),
-                    ),
+                    Expanded(child: _buildSmallCard(context, chunk[1], provider)),
                   ],
                 ),
               );
@@ -292,11 +307,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSmallCard(BuildContext context, Recipe recipe, RecipeProvider provider) {
+  Widget _buildSmallCard(
+      BuildContext context, Recipe recipe, RecipeProvider provider) {
     final stepCount = (recipe.pages != null && recipe.pages!.isNotEmpty)
         ? recipe.pages!.fold<int>(0, (sum, page) => sum + page.stepIds.length)
         : recipe.stepIds.length;
-        
+
     return RecipeCard(
       recipe: recipe,
       stepCount: stepCount,
@@ -309,9 +325,7 @@ class HomeScreen extends StatelessWidget {
   void _openRecipeForm(BuildContext context, {Recipe? recipe}) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => RecipeFormScreen(recipe: recipe),
-      ),
+      MaterialPageRoute(builder: (_) => RecipeFormScreen(recipe: recipe)),
     );
   }
 
@@ -319,8 +333,7 @@ class HomeScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => RecipeDetailScreen(recipeId: recipe.id),
-      ),
+          builder: (_) => RecipeDetailScreen(recipeId: recipe.id)),
     );
   }
 
@@ -331,25 +344,26 @@ class HomeScreen extends StatelessWidget {
   ) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: context.colors.surfaceElevated,
+      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(height: 12),
             Container(
-              width: 40,
+              width: 36,
               height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: context.colors.textHint,
+                color: context.colors.divider,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
+            const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
                 recipe.name,
                 style: context.textTheme.headlineMedium,
@@ -357,8 +371,10 @@ class HomeScreen extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+            Divider(color: context.colors.divider, height: 1),
             ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               leading: Icon(Icons.edit_rounded, color: context.colors.primary),
               title: const Text('Chỉnh sửa công thức'),
               onTap: () {
@@ -367,11 +383,11 @@ class HomeScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete_outline_rounded, color: context.colors.error),
-              title: Text(
-                'Xóa công thức',
-                style: TextStyle(color: context.colors.error),
-              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+              leading:
+                  Icon(Icons.delete_outline_rounded, color: context.colors.error),
+              title: Text('Xóa công thức',
+                  style: TextStyle(color: context.colors.error)),
               onTap: () {
                 Navigator.pop(ctx);
                 _confirmDelete(context, recipe, provider);
@@ -392,7 +408,8 @@ class HomeScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: context.colors.surfaceElevated,
+        backgroundColor: context.colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text('Xóa công thức?', style: context.textTheme.headlineMedium),
         content: Text(
           '"${recipe.name}" và toàn bộ các bước thực hiện sẽ bị xóa.',
@@ -420,4 +437,25 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Sticky header delegate ───────────────────────────────────────────────
+class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  const _StickyHeaderDelegate({required this.child});
+
+  @override
+  double get minExtent => 68;
+  @override
+  double get maxExtent => 68;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(_StickyHeaderDelegate oldDelegate) =>
+      oldDelegate.child != child;
 }

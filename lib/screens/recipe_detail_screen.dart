@@ -7,6 +7,7 @@ import '../widgets/app_image.dart';
 import '../widgets/app_theme.dart';
 import 'execution_screen.dart';
 import 'recipe_editor_screen.dart';
+import 'recipe_flow_screen.dart';
 import 'recipe_form_screen.dart';
 
 class RecipeDetailScreen extends StatelessWidget {
@@ -46,10 +47,6 @@ class RecipeDetailScreen extends StatelessWidget {
                         _buildDescription(context, recipe),
                       const SizedBox(height: 20),
                       _buildStatsRow(context, recipe, steps),
-                      if (recipe.ingredients.isNotEmpty) ...[
-                        const SizedBox(height: 28),
-                        _buildIngredientsSection(context, recipe),
-                      ],
                       if (recipe.additionalInfo != null &&
                           recipe.additionalInfo!.isNotEmpty) ...[
                         const SizedBox(height: 24),
@@ -79,18 +76,7 @@ class RecipeDetailScreen extends StatelessWidget {
       expandedHeight: recipe.imagePath != null ? 260 : 0,
       pinned: true,
       backgroundColor: context.colors.background,
-      actions: [
-        IconButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RecipeFormScreen(recipe: recipe),
-            ),
-          ),
-          icon: const Icon(Icons.edit_rounded),
-          tooltip: 'Chỉnh sửa',
-        ),
-      ],
+      actions: const [],
       flexibleSpace: recipe.imagePath != null
           ? FlexibleSpaceBar(
               background: Hero(
@@ -152,30 +138,33 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   Widget _buildStatsRow(BuildContext context, Recipe recipe, List<StepModel> steps) {
-    return Row(
+    return Wrap(
+      spacing: 10,
+      runSpacing: 8,
       children: [
-        _statChip(context: context, 
+        _statChip(
+          context: context,
           icon: Icons.format_list_numbered_rounded,
           value: '${steps.length}',
           label: 'bước',
           color: context.colors.primary,
         ),
-        const SizedBox(width: 12),
-        _statChip(context: context, 
-          icon: Icons.restaurant_menu_rounded,
-          value: '${recipe.ingredients.length}',
-          label: 'nguyên liệu',
-          color: context.colors.info,
-        ),
-        if (steps.any((s) => s.isTimerStep)) ...[
-          const SizedBox(width: 12),
-          _statChip(context: context, 
+        if (steps.any((s) => s.isTimerStep))
+          _statChip(
+            context: context,
             icon: Icons.timer_rounded,
             value: '${steps.where((s) => s.isTimerStep).length}',
             label: 'hẹn giờ',
             color: context.colors.warning,
           ),
-        ],
+        if (recipe.pages != null && recipe.pages!.length > 1)
+          _statChip(
+            context: context,
+            icon: Icons.account_tree_rounded,
+            value: '${recipe.pages!.length}',
+            label: 'giai đoạn',
+            color: context.colors.info,
+          ),
       ],
     );
   }
@@ -293,17 +282,80 @@ class RecipeDetailScreen extends StatelessWidget {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text('Quy trình thực hiện', style: context.textTheme.headlineLarge),
-            TextButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RecipeEditorScreen(recipe: recipe),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (recipe.pages != null && recipe.pages!.length > 1) ...[
+                  IconButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RecipeFlowScreen(
+                          recipe: recipe,
+                          pages: recipe.pages!,
+                        ),
+                      ),
+                    ),
+                    icon: Icon(
+                      Icons.account_tree_rounded,
+                      size: 20,
+                      color: context.colors.primary,
+                    ),
+                    tooltip: 'Nối quy trình (Flow)',
+                    style: IconButton.styleFrom(
+                      backgroundColor: context.colors.primary.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                IconButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecipeEditorScreen(recipe: recipe),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: context.colors.primary,
+                  ),
+                  tooltip: 'Quản lý quy trình',
+                  style: IconButton.styleFrom(
+                    backgroundColor: context.colors.primary.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                 ),
-              ),
-              icon: const Icon(Icons.edit_rounded, size: 16),
-              label: const Text('Quản lý'),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecipeFormScreen(recipe: recipe),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.edit_rounded,
+                    size: 20,
+                    color: context.colors.primary,
+                  ),
+                  tooltip: 'Chỉnh sửa thông tin',
+                  style: IconButton.styleFrom(
+                    backgroundColor: context.colors.primary.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

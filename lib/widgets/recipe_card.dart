@@ -53,12 +53,13 @@ class _RecipeCardState extends State<RecipeCard> {
         child: Container(
           decoration: BoxDecoration(
             color: context.colors.card,
-            borderRadius: BorderRadius.circular(widget.isLarge ? 28 : 20),
+            borderRadius: BorderRadius.circular(widget.isLarge ? 32 : 24),
+            border: Border.all(color: context.colors.divider.withOpacity(0.6), width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: widget.isLarge ? 24 : 12,
-                offset: Offset(0, widget.isLarge ? 8 : 4),
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: widget.isLarge ? 40 : 20,
+                offset: Offset(0, widget.isLarge ? 16 : 8),
               ),
             ],
           ),
@@ -68,7 +69,7 @@ class _RecipeCardState extends State<RecipeCard> {
             children: [
               _buildImage(),
               Padding(
-                padding: EdgeInsets.all(widget.isLarge ? 20 : 14),
+                padding: EdgeInsets.all(widget.isLarge ? 24 : 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -131,11 +132,11 @@ class _RecipeCardState extends State<RecipeCard> {
       return Hero(
         tag: 'recipe-${widget.recipe.id}',
         child: SizedBox(
-          height: widget.isLarge ? 220 : 160,
+          height: widget.isLarge ? 240 : 180,
           width: double.infinity,
           child: AppImage(
             imagePath: widget.recipe.imagePath,
-            height: widget.isLarge ? 220 : 160,
+            height: widget.isLarge ? 240 : 180,
             fit: BoxFit.cover,
             placeholder: placeholder,
           ),
@@ -147,23 +148,16 @@ class _RecipeCardState extends State<RecipeCard> {
 
   Widget _placeholderImage(BuildContext context) {
     return Container(
-      height: widget.isLarge ? 220 : 140,
+      height: widget.isLarge ? 240 : 180,
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            context.colors.primary.withValues(alpha: 0.3),
-            context.colors.primaryDark.withValues(alpha: 0.5),
-          ],
-        ),
+        color: context.colors.surfaceElevated,
       ),
       child: Center(
         child: Icon(
           Icons.restaurant_rounded,
           size: 48,
-          color: context.colors.primary,
+          color: context.colors.textHint.withOpacity(0.3),
         ),
       ),
     );
@@ -175,10 +169,10 @@ class _RecipeCardState extends State<RecipeCard> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(999), // Pill shape
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

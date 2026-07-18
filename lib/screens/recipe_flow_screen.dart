@@ -4,6 +4,7 @@ import '../models/recipe_page.dart';
 import '../providers/recipe_provider.dart';
 import '../widgets/app_theme.dart';
 import 'package:provider/provider.dart';
+import 'recipe_detail_screen.dart';
 
 class RecipeFlowScreen extends StatefulWidget {
   final Recipe recipe;
@@ -82,7 +83,12 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
     final updatedRecipe = widget.recipe.copyWith(pages: orderedPages);
     recipeProvider.updateRecipe(updatedRecipe);
     
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecipeDetailScreen(recipeId: updatedRecipe.id),
+      ),
+    );
   }
 
   @override

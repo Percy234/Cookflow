@@ -2,54 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFFFF8C42);
-  static const Color primaryLight = Color(0xFFFFAD6F);
-  static const Color primaryDark = Color(0xFFE0701E);
-  static const Color background = Color(0xFF121212);
-  static const Color surface = Color(0xFF1E1E1E);
-  static const Color surfaceElevated = Color(0xFF2A2A2A);
-  static const Color card = Color(0xFF252525);
-  static const Color textPrimary = Color(0xFFF5F5F5);
-  static const Color textSecondary = Color(0xFFB0B0B0);
-  static const Color textHint = Color(0xFF6B6B6B);
-  static const Color success = Color(0xFF4CAF50);
-  static const Color error = Color(0xFFCF6679);
+  static const Color primary = Color(0xFFE94E34); // Vermilion
+  static const Color primaryLight = Color(0xFFFF7256);
+  static const Color primaryDark = Color(0xFFD03920);
+  
+  // Static references for quick access (typically light theme values)
+  static const Color background = Color(0xFFFFFFFF);
+  static const Color surface = Color(0xFFF9F9F9);
+  static const Color surfaceElevated = Color(0xFFF0F0F0);
+  static const Color card = Color(0xFFFFFFFF);
+  static const Color textPrimary = Color(0xFF111111);
+  static const Color textSecondary = Color(0xFF737373);
+  static const Color textHint = Color(0xFFA3A3A3);
+  static const Color success = Color(0xFF28A745);
+  static const Color error = Color(0xFFDC3545);
   static const Color warning = Color(0xFFFFC107);
-  static const Color info = Color(0xFF64B5F6);
-  static const Color timerActive = Color(0xFFFF8C42);
-  static const Color timerPaused = Color(0xFFB0B0B0);
-  static const Color timerCompleted = Color(0xFF4CAF50);
-  static const Color divider = Color(0xFF333333);
+  static const Color info = Color(0xFF17A2B8);
+  static const Color timerActive = Color(0xFFE94E34);
+  static const Color timerPaused = Color(0xFF737373);
+  static const Color timerCompleted = Color(0xFF28A745);
+  static const Color divider = Color(0xFFE5E5E5);
 }
 
 class AppTextStyles {
-  static TextStyle get displayLarge => GoogleFonts.outfit(
+  static TextStyle get displayLarge => GoogleFonts.plusJakartaSans(
         fontSize: 32,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
-        height: 1.2,
+        height: 1.1,
+        letterSpacing: -1.0,
       );
 
-  static TextStyle get displayMedium => GoogleFonts.outfit(
+  static TextStyle get displayMedium => GoogleFonts.plusJakartaSans(
         fontSize: 26,
         fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
         height: 1.2,
+        letterSpacing: -0.5,
       );
 
-  static TextStyle get headlineLarge => GoogleFonts.outfit(
+  static TextStyle get headlineLarge => GoogleFonts.plusJakartaSans(
         fontSize: 22,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         color: AppColors.textPrimary,
+        letterSpacing: -0.5,
       );
 
-  static TextStyle get headlineMedium => GoogleFonts.outfit(
+  static TextStyle get headlineMedium => GoogleFonts.plusJakartaSans(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
+        letterSpacing: -0.3,
       );
 
-  static TextStyle get headlineSmall => GoogleFonts.outfit(
+  static TextStyle get headlineSmall => GoogleFonts.plusJakartaSans(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
@@ -80,21 +86,22 @@ class AppTextStyles {
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: AppColors.textPrimary,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
       );
 
   static TextStyle get labelMedium => GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: AppColors.textSecondary,
-        letterSpacing: 0.4,
+        letterSpacing: 0.2,
       );
 
-  static TextStyle get timerDisplay => GoogleFonts.outfit(
+  static TextStyle get timerDisplay => GoogleFonts.plusJakartaSans(
         fontSize: 64,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         color: AppColors.primary,
-        letterSpacing: 2,
+        letterSpacing: -2,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 }
 
@@ -218,33 +225,37 @@ extension ThemeContextExtension on BuildContext {
 }
 
 class AppTextStylesDynamic {
-  static TextStyle displayLarge(Color color) => GoogleFonts.outfit(
+  static TextStyle displayLarge(Color color) => GoogleFonts.plusJakartaSans(
         fontSize: 32,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         color: color,
-        height: 1.2,
+        height: 1.1,
+        letterSpacing: -1.0,
       );
 
-  static TextStyle displayMedium(Color color) => GoogleFonts.outfit(
+  static TextStyle displayMedium(Color color) => GoogleFonts.plusJakartaSans(
         fontSize: 26,
         fontWeight: FontWeight.w700,
         color: color,
         height: 1.2,
+        letterSpacing: -0.5,
       );
 
-  static TextStyle headlineLarge(Color color) => GoogleFonts.outfit(
+  static TextStyle headlineLarge(Color color) => GoogleFonts.plusJakartaSans(
         fontSize: 22,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
         color: color,
+        letterSpacing: -0.5,
       );
 
-  static TextStyle headlineMedium(Color color) => GoogleFonts.outfit(
+  static TextStyle headlineMedium(Color color) => GoogleFonts.plusJakartaSans(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: color,
+        letterSpacing: -0.3,
       );
 
-  static TextStyle headlineSmall(Color color) => GoogleFonts.outfit(
+  static TextStyle headlineSmall(Color color) => GoogleFonts.plusJakartaSans(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: color,
@@ -275,69 +286,70 @@ class AppTextStylesDynamic {
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: color,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3,
       );
 
   static TextStyle labelMedium(Color color) => GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w500,
         color: color,
-        letterSpacing: 0.4,
+        letterSpacing: 0.2,
       );
 
-  static TextStyle timerDisplay(Color color) => GoogleFonts.outfit(
+  static TextStyle timerDisplay(Color color) => GoogleFonts.plusJakartaSans(
         fontSize: 64,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         color: color,
-        letterSpacing: 2,
+        letterSpacing: -2,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 }
 
 class AppTheme {
-  static const Color _primary = Color(0xFFFF8C42);
-  static const Color _primaryLight = Color(0xFFFFAD6F);
-  static const Color _primaryDark = Color(0xFFE0701E);
+  static const Color _primary = Color(0xFFE94E34);
+  static const Color _primaryLight = Color(0xFFFF7256);
+  static const Color _primaryDark = Color(0xFFD03920);
 
   static final AppColorsExtension _darkColors = AppColorsExtension(
     primary: _primary,
     primaryLight: _primaryLight,
     primaryDark: _primaryDark,
-    background: const Color(0xFF121212),
-    surface: const Color(0xFF1E1E1E),
-    surfaceElevated: const Color(0xFF2A2A2A),
-    card: const Color(0xFF252525),
+    background: const Color(0xFF050505),
+    surface: const Color(0xFF141414),
+    surfaceElevated: const Color(0xFF1F1F1F),
+    card: const Color(0xFF141414),
     textPrimary: const Color(0xFFF5F5F5),
-    textSecondary: const Color(0xFFB0B0B0),
-    textHint: const Color(0xFF6B6B6B),
+    textSecondary: const Color(0xFFA3A3A3),
+    textHint: const Color(0xFF525252),
     success: const Color(0xFF4CAF50),
-    error: const Color(0xFFCF6679),
+    error: const Color(0xFFE94E34),
     warning: const Color(0xFFFFC107),
     info: const Color(0xFF64B5F6),
     timerActive: _primary,
-    timerPaused: const Color(0xFFB0B0B0),
+    timerPaused: const Color(0xFF525252),
     timerCompleted: const Color(0xFF4CAF50),
-    divider: const Color(0xFF333333),
+    divider: const Color(0xFF262626),
   );
 
   static final AppColorsExtension _lightColors = AppColorsExtension(
     primary: _primary,
     primaryLight: _primaryLight,
     primaryDark: _primaryDark,
-    background: const Color(0xFFF8F9FA),
-    surface: const Color(0xFFFFFFFF),
-    surfaceElevated: const Color(0xFFF1F3F5),
+    background: const Color(0xFFFFFFFF),
+    surface: const Color(0xFFF9F9F9),
+    surfaceElevated: const Color(0xFFF0F0F0),
     card: const Color(0xFFFFFFFF),
-    textPrimary: const Color(0xFF212529),
-    textSecondary: const Color(0xFF6C757D),
-    textHint: const Color(0xFFADB5BD),
+    textPrimary: const Color(0xFF111111),
+    textSecondary: const Color(0xFF737373),
+    textHint: const Color(0xFFA3A3A3),
     success: const Color(0xFF28A745),
-    error: const Color(0xFFDC3545),
+    error: const Color(0xFFE94E34),
     warning: const Color(0xFFFFC107),
     info: const Color(0xFF17A2B8),
     timerActive: _primary,
-    timerPaused: const Color(0xFF6C757D),
+    timerPaused: const Color(0xFF737373),
     timerCompleted: const Color(0xFF28A745),
-    divider: const Color(0xFFDEE2E6),
+    divider: const Color(0xFFE5E5E5),
   );
 
   static ThemeData get darkTheme => _buildTheme(Brightness.dark, _darkColors);
@@ -375,7 +387,7 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: colors.background,
         elevation: 0,
-        scrolledUnderElevation: 1,
+        scrolledUnderElevation: 0, // No weird tint on scroll
         centerTitle: false,
         titleTextStyle: AppTextStylesDynamic.headlineLarge(colors.textPrimary),
         iconTheme: IconThemeData(color: colors.textPrimary),
@@ -384,7 +396,8 @@ class AppTheme {
         color: colors.card,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: colors.divider.withOpacity(0.5), width: 1), // Subtle border
         ),
         margin: EdgeInsets.zero,
       ),
@@ -392,56 +405,57 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: colors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(999), // Pill shape
           ),
-          textStyle: AppTextStylesDynamic.labelLarge(colors.textPrimary),
+          textStyle: AppTextStylesDynamic.labelLarge(colors.textPrimary).copyWith(fontWeight: FontWeight.w700),
           elevation: 0,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: colors.primary,
-          side: BorderSide(color: colors.primary),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          side: BorderSide(color: colors.primary, width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(999), // Pill shape
           ),
-          textStyle: AppTextStylesDynamic.labelLarge(colors.textPrimary),
+          textStyle: AppTextStylesDynamic.labelLarge(colors.textPrimary).copyWith(fontWeight: FontWeight.w700),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colors.primary,
-          textStyle: AppTextStylesDynamic.labelLarge(colors.textPrimary),
+          textStyle: AppTextStylesDynamic.labelLarge(colors.textPrimary).copyWith(fontWeight: FontWeight.w700),
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colors.primary,
         foregroundColor: Colors.white,
         elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: colors.surfaceElevated,
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: colors.divider),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: colors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: colors.error),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colors.error, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         hintStyle: AppTextStylesDynamic.bodyMedium(colors.textHint),
         labelStyle: AppTextStylesDynamic.bodyMedium(colors.textSecondary),
       ),
@@ -453,26 +467,27 @@ class AppTheme {
         backgroundColor: colors.surfaceElevated,
         contentTextStyle: AppTextStylesDynamic.bodyMedium(colors.textPrimary),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: colors.surfaceElevated,
-        selectedColor: colors.primary.withValues(alpha: 0.2),
-        labelStyle: AppTextStylesDynamic.labelMedium(colors.textSecondary),
-        side: BorderSide(color: colors.divider),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        selectedColor: colors.primary.withOpacity(0.2),
+        labelStyle: AppTextStylesDynamic.labelMedium(colors.textPrimary),
+        side: BorderSide.none,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)), // Pill shape
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? colors.primary
+        thumbColor: MaterialStateProperty.resolveWith(
+          (states) => states.contains(MaterialState.selected)
+              ? Colors.white
               : colors.textSecondary,
         ),
-        trackColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? colors.primary.withValues(alpha: 0.4)
+        trackColor: MaterialStateProperty.resolveWith(
+          (states) => states.contains(MaterialState.selected)
+              ? colors.primary
               : colors.surfaceElevated,
         ),
+        trackOutlineColor: const MaterialStatePropertyAll(Colors.transparent),
       ),
       iconTheme: IconThemeData(color: colors.textSecondary),
       progressIndicatorTheme: ProgressIndicatorThemeData(

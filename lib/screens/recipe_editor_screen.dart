@@ -16,6 +16,7 @@ import '../widgets/app_theme.dart';
 import '../widgets/app_image.dart';
 import 'package:provider/provider.dart';
 import 'recipe_detail_screen.dart';
+import 'recipe_flow_screen.dart';
 
 class RecipeEditorScreen extends StatefulWidget {
   final Recipe? recipe;
@@ -197,11 +198,58 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       backgroundColor: context.colors.background,
       appBar: AppBar(
         title: Text(widget.recipe != null 
-            ? 'Chỉnh sửa quy trình: ${widget.recipe!.name}' 
+            ? widget.recipe!.name
             : 'Chỉnh sửa quy trình'),
         backgroundColor: context.colors.background,
         foregroundColor: context.colors.textPrimary,
         elevation: 0,
+        actions: [
+          if (!_isPreviewMode && _pages.isNotEmpty && _pages[_selectedPageIndex].type == 'timer')
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0, top: 8.0, bottom: 8.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: context.colors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.timer, size: 20),
+                  color: context.colors.primary,
+                  tooltip: 'Cài đặt thời gian',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  onPressed: _showTimerSettingsDialog,
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0, top: 8.0, bottom: 8.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _isPreviewMode ? context.colors.primary : context.colors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: IconButton(
+                icon: Icon(_isPreviewMode ? Icons.edit_rounded : Icons.preview_rounded, size: 20),
+                color: _isPreviewMode ? Colors.white : context.colors.primary,
+                tooltip: _isPreviewMode ? 'Chỉnh sửa' : 'Xem trước',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                onPressed: () {
+                  setState(() {
+                    _isPreviewMode = !_isPreviewMode;
+                    if (_isPreviewMode) {
+                      _selectedBlockId = null;
+                      _selectedColIdx = null;
+                      _focusedStyleBlock = null;
+                    }
+                  });
+                  FocusScope.of(context).unfocus();
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -263,16 +311,67 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                           ],
                         ),
                       )
-                    : ListView.builder(
+                    : ReorderableListView.builder(
+                        buildDefaultDragHandles: false,
                         padding: EdgeInsets.only(
                           left: 24, right: 24, top: 16, 
                           bottom: _focusedStyleBlock != null ? 300 : 56
                         ),
                         itemCount: _blocks.length,
+                        onReorder: (int oldIndex, int newIndex) {
+                          setState(() {
+                            if (oldIndex < newIndex) {
+                              newIndex -= 1;
+                            }
+                            final item = _blocks.removeAt(oldIndex);
+                            _blocks.insert(newIndex, item);
+                          });
+                        },
+                        proxyDecorator: (Widget child, int index, Animation<double> animation) {
+                          return AnimatedBuilder(
+                            animation: animation,
+                            builder: (context, child) {
+                              return Material(
+                                color: Colors.transparent,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF1F1F1F)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.12),
+                                        blurRadius: 24,
+                                        spreadRadius: 2,
+                                        offset: const Offset(0, 8),
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.06),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: child,
+                          );
+                        },
                         itemBuilder: (context, index) {
-                          return IgnorePointer(
-                            ignoring: _isPreviewMode,
-                            child: _buildBlockWrapper(_blocks[index], index),
+                          return ReorderableDelayedDragStartListener(
+                            key: ValueKey('drag_${_blocks[index].id}'),
+                            index: index,
+                            child: Container(
+                              color: Colors.transparent, // Ensures full hit-testing for the drag
+                              child: IgnorePointer(
+                                ignoring: _isPreviewMode,
+                                child: _buildBlockWrapper(_blocks[index], index),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -332,70 +431,34 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                           }
 
                           if (mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => RecipeDetailScreen(recipeId: finalRecipe.id),
-                              ),
-                            );
+                            final updatedPages = finalRecipe.pages ?? [];
+                            if (updatedPages.length > 1) {
+                              // Has multiple pages → go to flow screen to connect them
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RecipeFlowScreen(
+                                    recipe: finalRecipe,
+                                    pages: updatedPages,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              // Single page → go straight to detail
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RecipeDetailScreen(recipeId: finalRecipe.id),
+                                ),
+                              );
+                            }
                           }
                         }
                       },
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!_isPreviewMode && _pages.isNotEmpty && _pages[_selectedPageIndex].type == 'timer')
-                        Container(
-                          decoration: BoxDecoration(
-                            color: context.colors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.timer, size: 20),
-                            color: context.colors.primary,
-                            tooltip: 'Cài đặt thời gian',
-                            constraints: const BoxConstraints(),
-                            padding: const EdgeInsets.all(8),
-                            onPressed: _showTimerSettingsDialog,
-                          ),
-                        ),
-                      if (!_isPreviewMode && _pages.isNotEmpty && _pages[_selectedPageIndex].type == 'timer')
-                        const SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: _isPreviewMode ? context.colors.primary : context.colors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: _isPreviewMode ? Colors.transparent : context.colors.divider),
-                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-                        ),
-                        child: IconButton(
-                          icon: Icon(_isPreviewMode ? Icons.edit_rounded : Icons.preview_rounded, size: 20),
-                          color: _isPreviewMode ? Colors.white : context.colors.textPrimary,
-                          tooltip: _isPreviewMode ? 'Chỉnh sửa' : 'Xem trước',
-                          constraints: const BoxConstraints(),
-                          padding: const EdgeInsets.all(8),
-                          onPressed: () {
-                            setState(() {
-                              _isPreviewMode = !_isPreviewMode;
-                              if (_isPreviewMode) {
-                                _selectedBlockId = null;
-                                _selectedColIdx = null;
-                                _focusedStyleBlock = null;
-                              }
-                            });
-                            FocusScope.of(context).unfocus();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+
                 if (_focusedStyleBlock != null)
                   NotificationListener<DraggableScrollableNotification>(
                     onNotification: (_) => true,
