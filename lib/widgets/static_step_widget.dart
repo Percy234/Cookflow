@@ -79,13 +79,7 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
 
             const SizedBox(height: 24),
 
-            // Step type badge
-            _buildTypeBadge(),
-            const SizedBox(height: 16),
 
-            // Step name
-            Text(widget.step.name, style: AppTextStyles.displayMedium),
-            const SizedBox(height: 16),
 
             // Instruction
             if (widget.step.instruction.isNotEmpty)
@@ -130,32 +124,6 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
     );
   }
 
-  Widget _buildTypeBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.check_circle_outline_rounded,
-            size: 14,
-            color: AppColors.success,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            'Bước thực hiện',
-            style: AppTextStyles.labelMedium.copyWith(
-              color: AppColors.success,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildNavButtons() {
     return Row(

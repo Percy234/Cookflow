@@ -62,7 +62,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
       fontStyle: (b.isItalic ?? false) ? FontStyle.italic : FontStyle.normal,
       decoration: (b.isUnderline ?? false) ? TextDecoration.underline : TextDecoration.none,
       fontSize: b.fontSize ?? defaultSize,
-      color: _parseColor(b.color) ?? Colors.white,
+      color: _parseColor(b.color),
     );
   }
 
@@ -201,7 +201,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
                     block.content,
                     style: _getTextStyle().copyWith(
                       decoration: _checkboxValue ? TextDecoration.lineThrough : null,
-                      color: _checkboxValue ? AppColors.textHint : _parseColor(block.color) ?? Colors.white,
+                      color: _checkboxValue ? AppColors.textHint : _parseColor(block.color),
                     ),
                     textAlign: _getTextAlign(),
                   ),
@@ -264,7 +264,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
                           text,
                           style: _getTextStyle().copyWith(
                             decoration: isChecked ? TextDecoration.lineThrough : null,
-                            color: isChecked ? AppColors.textHint : _parseColor(block.color) ?? Colors.white,
+                            color: isChecked ? AppColors.textHint : _parseColor(block.color),
                           ),
                           textAlign: _getTextAlign(),
                         ),

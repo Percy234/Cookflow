@@ -34,6 +34,16 @@ class TimerService extends ChangeNotifier {
 
   // ─── Controls ──────────────────────────────────────────────────
 
+  void init(int durationSeconds, {VoidCallback? onCompleted}) {
+    _cancelTimer();
+    _totalSeconds = durationSeconds;
+    _secondsRemaining = durationSeconds;
+    _status = TimerStatus.idle;
+    _onCompleted = onCompleted;
+    notifyListeners();
+  }
+
+
   void start(int durationSeconds, {VoidCallback? onCompleted}) {
     _cancelTimer();
     _totalSeconds = durationSeconds;

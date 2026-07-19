@@ -88,15 +88,35 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
         ? (exec.currentIndex + 1) / exec.totalSteps
         : 0.0;
 
+    final step = exec.currentStep;
+    final isTimer = step?.isTimerStep ?? false;
+    final badgeColor = isTimer ? AppColors.primary : AppColors.success;
+    final badgeIcon = isTimer ? Icons.timer_rounded : Icons.check_circle_outline_rounded;
+    final stepName = step?.name.replaceAll('Trang', 'Bước') ?? 'Bước ${exec.currentIndex + 1}';
+
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Bước ${exec.currentIndex + 1} / ${exec.totalSteps}',
-            style: AppTextStyles.headlineSmall,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: badgeColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(badgeIcon, size: 14, color: badgeColor),
+                const SizedBox(width: 6),
+                Text(
+                  '$stepName / ${exec.totalSteps}',
+                  style: AppTextStyles.labelLarge.copyWith(color: badgeColor),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(

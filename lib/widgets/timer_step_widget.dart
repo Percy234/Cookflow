@@ -45,10 +45,10 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Reset and auto-start timer for this step
+    // Init timer for this step without starting
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final timerService = context.read<TimerService>();
-      timerService.start(
+      timerService.init(
         widget.step.durationSeconds ?? 60,
         onCompleted: _onTimerCompleted,
       );
@@ -61,7 +61,7 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.step.id != widget.step.id) {
       final timerService = context.read<TimerService>();
-      timerService.start(
+      timerService.init(
         widget.step.durationSeconds ?? 60,
         onCompleted: _onTimerCompleted,
       );
@@ -100,13 +100,7 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
 
             const SizedBox(height: 20),
 
-            // Badge
-            _buildTypeBadge(),
-            const SizedBox(height: 12),
 
-            // Step name
-            Text(widget.step.name, style: AppTextStyles.displayMedium),
-            const SizedBox(height: 8),
 
             // Instruction
             if (widget.step.instruction.isNotEmpty)
@@ -154,28 +148,6 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     );
   }
 
-  Widget _buildTypeBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.timer_rounded, size: 14, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Text(
-            'Bước hẹn giờ',
-            style: AppTextStyles.labelMedium.copyWith(
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTimerCircle(TimerService timer, Color color) {
     return ScaleTransition(
