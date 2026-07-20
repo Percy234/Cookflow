@@ -82,8 +82,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
     if (mounted) {
       setState(() => _isSaving = false);
-      // Thay vì quay lại, chuyển tiếp sang trang Edit
-      Navigator.pushReplacement(
+      // Chuyển tiếp sang trang Edit (không dùng replacement để có thể back lại)
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => RecipeEditorScreen(recipe: recipeToEdit),

@@ -30,7 +30,7 @@ class RecipeEditorScreen extends StatefulWidget {
 class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   bool _isPreviewMode = false;
   int _selectedPageIndex = 0;
-  List<RecipePage> _pages = [RecipePage(id: const Uuid().v4(), name: 'Trang 1')];
+  List<RecipePage> _pages = [RecipePage(id: const Uuid().v4(), name: 'Bước 1')];
   final Map<String, List<StepBlock>> _pageBlocks = {};
 
   List<StepBlock> get _blocks {
@@ -434,7 +434,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                             final updatedPages = finalRecipe.pages ?? [];
                             if (updatedPages.length > 1) {
                               // Has multiple pages → go to flow screen to connect them
-                              Navigator.pushReplacement(
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => RecipeFlowScreen(
@@ -444,12 +444,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                                 ),
                               );
                             } else {
-                              // Single page → go straight to detail
-                              Navigator.pushReplacement(
+                              // Single page → go straight to detail and clear stack
+                              Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => RecipeDetailScreen(recipeId: finalRecipe.id),
                                 ),
+                                (route) => route.isFirst,
                               );
                             }
                           }
@@ -582,7 +583,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             IconButton(
               icon: Icon(Icons.add, color: context.colors.textPrimary),
               onPressed: _addNewPage,
-              tooltip: 'Thêm trang mới',
+              tooltip: 'Thêm bước mới',
             ),
         ],
       ),
@@ -626,7 +627,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     setState(() {
       final newPage = RecipePage(
         id: const Uuid().v4(), 
-        name: 'Trang ${_pages.length + 1}',
+        name: 'Bước ${_pages.length + 1}',
         type: type,
         duration: type == 'timer' ? 300 : null, // Default 5 minutes
       );
@@ -719,13 +720,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.colors.surfaceElevated,
-        title: Text('Đổi tên trang', style: context.textTheme.headlineMedium),
+        title: Text('Đổi tên bước', style: context.textTheme.headlineMedium),
         content: TextField(
           controller: controller,
           style: context.textTheme.bodyLarge,
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: 'Nhập tên trang',
+            hintText: 'Nhập tên bước',
           ),
         ),
         actions: [

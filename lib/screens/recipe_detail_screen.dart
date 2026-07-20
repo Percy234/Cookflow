@@ -394,6 +394,11 @@ class RecipeDetailScreen extends StatelessWidget {
 
   Widget _buildStepPreviewTile(BuildContext context, int index, StepModel step) {
     final isTimer = step.isTimerStep;
+    String displayName = step.name;
+    if (RegExp(r'^(Trang|Bước)\s+\d+$').hasMatch(displayName)) {
+      displayName = 'Bước ${index + 1}';
+    }
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -426,7 +431,7 @@ class RecipeDetailScreen extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(step.name, style: context.textTheme.bodyMedium),
+            child: Text(displayName, style: context.textTheme.bodyMedium),
           ),
           Icon(
             isTimer ? Icons.timer_rounded : Icons.check_circle_outline_rounded,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../models/recipe.dart';
 import '../models/recipe_page.dart';
 import '../providers/recipe_provider.dart';
@@ -20,9 +21,8 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
   late List<RecipePage> _pages;
   final GlobalKey _canvasKey = GlobalKey();
   
-  // Dragging connection state
-  String? _draggingFromNodeId;
-  Offset? _dragCurrentPos;
+  // Connection state
+  String? _selectedSourceNodeId;
   
   // Viewport
   final TransformationController _transformController = TransformationController();
@@ -48,45 +48,97 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
   }
 
   void _saveFlow() {
-    final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
-    
-    // Sort pages based on nextId to determine the final order
-    Set<String> targetIds = _pages.where((p) => p.nextId != null).map((p) => p.nextId!).toSet();
-    List<RecipePage> startNodes = _pages.where((p) => !targetIds.contains(p.id)).toList();
-    
-    List<RecipePage> orderedPages = [];
-    Set<String> visited = {};
-    
-    for (var node in startNodes) {
-      var current = node;
-      while (!visited.contains(current.id)) {
-        orderedPages.add(current);
-        visited.add(current.id);
-        if (current.nextId != null) {
-          // Find the next node
-          var matches = _pages.where((p) => p.id == current.nextId);
-          if (matches.isEmpty) break;
-          current = matches.first;
-        } else {
-          break;
-        }
+    if (_pages.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+
+    // Validation 1: Check for multiple incoming connections
+    Map<String, int> incomingCounts = {};
+    for (var page in _pages) {
+      if (page.nextId != null) {
+        incomingCounts[page.nextId!] = (incomingCounts[page.nextId!] ?? 0) + 1;
       }
     }
     
-    // Add any unvisited nodes (e.g. standalone nodes or cycles)
-    for (var page in _pages) {
-      if (!visited.contains(page.id)) {
-        orderedPages.add(page);
+    for (var entry in incomingCounts.entries) {
+      if (entry.value > 1) {
+        final duplicatePage = _pages.firstWhere((p) => p.id == entry.key);
+        _showError('Giai đoạn "${duplicatePage.name}" đang được nối tới 2 lần! Mỗi giai đoạn chỉ được nhận 1 đường nối.');
+        return;
       }
     }
 
+    // Validation 2: Find start node and check for disconnected components
+    final startNodes = _pages.where((p) => !incomingCounts.containsKey(p.id)).toList();
+    if (startNodes.isEmpty) {
+      _showError('Quy trình không hợp lệ (bị vòng lặp khép kín, không có điểm bắt đầu).');
+      return;
+    }
+    if (startNodes.length > 1 && _pages.length > 1) {
+      _showError('Có giai đoạn chưa được kết nối! Vui lòng nối tất cả thành một luồng duy nhất.');
+      return;
+    }
+
+    // Validation 3: Traverse to ensure all nodes are reachable in a single path
+    List<RecipePage> orderedPages = [];
+    Set<String> visited = {};
+    var current = startNodes.first;
+    
+    while (true) {
+      orderedPages.add(current);
+      visited.add(current.id);
+      
+      if (current.nextId == null) break;
+      
+      final nextNodes = _pages.where((p) => p.id == current.nextId);
+      if (nextNodes.isEmpty) break;
+      
+      current = nextNodes.first;
+      if (visited.contains(current.id)) {
+        _showError('Quy trình bị vòng lặp tại giai đoạn "${current.name}".');
+        return;
+      }
+    }
+
+    if (visited.length < _pages.length) {
+      _showError('Có giai đoạn chưa được nối vào luồng chính. Vui lòng kiểm tra lại.');
+      return;
+    }
+
+    // All validations passed. Save.
+    final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
     final updatedRecipe = widget.recipe.copyWith(pages: orderedPages);
     recipeProvider.updateRecipe(updatedRecipe);
     
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (_) => RecipeDetailScreen(recipeId: updatedRecipe.id),
+      ),
+      (route) => route.isFirst,
+    );
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.colors.surface,
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: context.colors.warning),
+            const SizedBox(width: 8),
+            Text('Lỗi kết nối', style: context.textTheme.titleLarge),
+          ],
+        ),
+        content: Text(message, style: context.textTheme.bodyMedium),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đã hiểu', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -115,7 +167,7 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
                 color: Color(0xFF1E1E1E),
               ),
               child: CustomPaint(
-                painter: _GridAndConnectionPainter(_pages, _draggingFromNodeId, _dragCurrentPos, nodeWidth, nodeHeight),
+                painter: _GridAndConnectionPainter(_pages, nodeWidth, nodeHeight),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -154,6 +206,19 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
       left: page.uiX!,
       top: page.uiY!,
       child: GestureDetector(
+        onTap: () => _handleNodeTap(page.id),
+        onDoubleTap: () {
+          setState(() {
+            page.nextId = null;
+            if (_selectedSourceNodeId == page.id) _selectedSourceNodeId = null;
+          });
+        },
+        onLongPress: () {
+          setState(() {
+            page.nextId = null;
+            if (_selectedSourceNodeId == page.id) _selectedSourceNodeId = null;
+          });
+        },
         onPanUpdate: (details) {
           setState(() {
             // Apply scale factor for smooth dragging
@@ -166,10 +231,17 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
           width: nodeWidth,
           height: nodeHeight,
           decoration: BoxDecoration(
-            color: context.colors.surfaceElevated,
-            border: Border.all(color: context.colors.primary, width: 2),
+            color: _selectedSourceNodeId == page.id 
+                ? context.colors.primary.withValues(alpha: 0.2) 
+                : context.colors.surfaceElevated,
+            border: Border.all(
+              color: _selectedSourceNodeId == page.id ? context.colors.primary : context.colors.primary.withValues(alpha: 0.5), 
+              width: 2
+            ),
             borderRadius: BorderRadius.circular(8),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
+            boxShadow: _selectedSourceNodeId == page.id 
+                ? [BoxShadow(color: context.colors.primary.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)]
+                : const [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))],
           ),
           child: Stack(
             clipBehavior: Clip.none,
@@ -193,60 +265,6 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
                   left: 4,
                   child: Icon(Icons.timer, size: 12, color: context.colors.textSecondary),
                 ),
-              // Port for outgoing connection
-              Positioned(
-                right: -16,
-                top: nodeHeight / 2 - 16,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onDoubleTap: () {
-                    setState(() {
-                      page.nextId = null;
-                    });
-                  },
-                  onPanStart: (details) {
-                    setState(() {
-                      _draggingFromNodeId = page.id;
-                      _dragCurrentPos = _getLocalPos(details.globalPosition);
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    setState(() {
-                      _dragCurrentPos = _getLocalPos(details.globalPosition);
-                    });
-                  },
-                  onPanEnd: (details) {
-                    _handleConnectionDrop(page.id, details.globalPosition);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: context.colors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(Icons.arrow_forward_ios, size: 10, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-              // Input area visualization
-              Positioned(
-                left: -6,
-                top: nodeHeight / 2 - 6,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: context.colors.textHint,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              )
             ],
           ),
         ),
@@ -254,34 +272,21 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
     );
   }
 
-  Offset _getLocalPos(Offset globalPos) {
-    RenderBox renderBox = _canvasKey.currentContext!.findRenderObject() as RenderBox;
-    return renderBox.globalToLocal(globalPos);
-  }
-
-  void _handleConnectionDrop(String sourceId, Offset globalPos) {
-    final localPos = _getLocalPos(globalPos);
-    String? targetId;
-    
-    for (final page in _pages) {
-      if (page.id == sourceId) continue;
-      if (localPos.dx >= page.uiX! - 20 && localPos.dx <= page.uiX! + nodeWidth + 20 &&
-          localPos.dy >= page.uiY! - 20 && localPos.dy <= page.uiY! + nodeHeight + 20) {
-        targetId = page.id;
-        break;
-      }
-    }
-
+  void _handleNodeTap(String tappedId) {
     setState(() {
-      _draggingFromNodeId = null;
-      _dragCurrentPos = null;
-      
-      if (targetId != null) {
-        final sourcePage = _pages.firstWhere((p) => p.id == sourceId);
-        sourcePage.nextId = targetId;
+      if (_selectedSourceNodeId == null) {
+        _selectedSourceNodeId = tappedId;
+      } else if (_selectedSourceNodeId == tappedId) {
+        _selectedSourceNodeId = null; // deselect
       } else {
-        final sourcePage = _pages.firstWhere((p) => p.id == sourceId);
-        sourcePage.nextId = null;
+        final sourcePage = _pages.firstWhere((p) => p.id == _selectedSourceNodeId);
+        if (sourcePage.nextId == tappedId) {
+          // Đã kết nối với nhau rồi thì xoá liên kết (Toggle)
+          sourcePage.nextId = null;
+        } else {
+          sourcePage.nextId = tappedId;
+        }
+        _selectedSourceNodeId = null;
       }
     });
   }
@@ -289,12 +294,10 @@ class _RecipeFlowScreenState extends State<RecipeFlowScreen> {
 
 class _GridAndConnectionPainter extends CustomPainter {
   final List<RecipePage> pages;
-  final String? draggingNodeId;
-  final Offset? dragPos;
   final double nodeWidth;
   final double nodeHeight;
 
-  _GridAndConnectionPainter(this.pages, this.draggingNodeId, this.dragPos, this.nodeWidth, this.nodeHeight);
+  _GridAndConnectionPainter(this.pages, this.nodeWidth, this.nodeHeight);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -322,48 +325,54 @@ class _GridAndConnectionPainter extends CustomPainter {
         final targetPage = pages.firstWhere((p) => p.id == page.nextId, orElse: () => page);
         if (targetPage.id == page.id) continue;
 
-        final start = Offset(page.uiX! + nodeWidth, page.uiY! + nodeHeight / 2);
-        final end = Offset(targetPage.uiX!, targetPage.uiY! + nodeHeight / 2);
-        
-        _drawOrthogonalLine(canvas, start, end, linePaint, arrowPaint);
-      }
-    }
+        final centerA = Offset(page.uiX! + nodeWidth / 2, page.uiY! + nodeHeight / 2);
+        final centerB = Offset(targetPage.uiX! + nodeWidth / 2, targetPage.uiY! + nodeHeight / 2);
 
-    // 3. Draw Dragging Line
-    if (draggingNodeId != null && dragPos != null) {
-      final sourcePage = pages.firstWhere((p) => p.id == draggingNodeId);
-      final start = Offset(sourcePage.uiX! + nodeWidth, sourcePage.uiY! + nodeHeight / 2);
-      
-      _drawOrthogonalLine(canvas, start, dragPos!, linePaint..color = Colors.green, arrowPaint..color = Colors.green);
+        final start = _getPerimeterPoint(centerA, centerB, nodeWidth, nodeHeight);
+        final end = _getPerimeterPoint(centerB, centerA, nodeWidth, nodeHeight);
+        
+        _drawStraightLine(canvas, start, end, linePaint, arrowPaint);
+      }
     }
   }
 
-  void _drawOrthogonalLine(Canvas canvas, Offset start, Offset end, Paint linePaint, Paint arrowPaint) {
+  Offset _getPerimeterPoint(Offset center, Offset target, double width, double height) {
+    final double dx = target.dx - center.dx;
+    final double dy = target.dy - center.dy;
+    if (dx == 0 && dy == 0) return center;
+    
+    final double hw = width / 2;
+    final double hh = height / 2;
+    
+    final double scaleX = dx.abs() > 0 ? hw / dx.abs() : double.infinity;
+    final double scaleY = dy.abs() > 0 ? hh / dy.abs() : double.infinity;
+    
+    final double scale = math.min(scaleX, scaleY);
+    
+    return Offset(center.dx + dx * scale, center.dy + dy * scale);
+  }
+
+  void _drawStraightLine(Canvas canvas, Offset start, Offset end, Paint linePaint, Paint arrowPaint) {
     final Path path = Path();
     path.moveTo(start.dx, start.dy);
-    
-    double midX = start.dx + (end.dx - start.dx) / 2;
-    
-    if (end.dx < start.dx + 40) {
-      midX = start.dx + 30;
-      path.lineTo(midX, start.dy);
-      path.lineTo(midX, start.dy + nodeHeight + 20); // Go down around
-      double backX = end.dx - 30;
-      path.lineTo(backX, start.dy + nodeHeight + 20);
-      path.lineTo(backX, end.dy);
-      path.lineTo(end.dx, end.dy);
-    } else {
-      path.lineTo(midX, start.dy);
-      path.lineTo(midX, end.dy);
-      path.lineTo(end.dx, end.dy);
-    }
-    
+    path.lineTo(end.dx, end.dy);
     canvas.drawPath(path, linePaint);
     
+    final double dx = end.dx - start.dx;
+    final double dy = end.dy - start.dy;
+    final double angle = math.atan2(dy, dx);
+    
     final Path arrowPath = Path();
+    // Arrow tip
     arrowPath.moveTo(end.dx, end.dy);
-    arrowPath.lineTo(end.dx - 10, end.dy - 6);
-    arrowPath.lineTo(end.dx - 10, end.dy + 6);
+    arrowPath.lineTo(
+      end.dx - 14 * math.cos(angle - math.pi / 7),
+      end.dy - 14 * math.sin(angle - math.pi / 7),
+    );
+    arrowPath.lineTo(
+      end.dx - 14 * math.cos(angle + math.pi / 7),
+      end.dy - 14 * math.sin(angle + math.pi / 7),
+    );
     arrowPath.close();
     canvas.drawPath(arrowPath, arrowPaint);
   }

@@ -92,7 +92,11 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     final isTimer = step?.isTimerStep ?? false;
     final badgeColor = isTimer ? AppColors.primary : AppColors.success;
     final badgeIcon = isTimer ? Icons.timer_rounded : Icons.check_circle_outline_rounded;
-    final stepName = step?.name.replaceAll('Trang', 'Bước') ?? 'Bước ${exec.currentIndex + 1}';
+    
+    String stepName = step?.name ?? 'Bước ${exec.currentIndex + 1}';
+    if (RegExp(r'^(Trang|Bước)\s+\d+$').hasMatch(stepName)) {
+      stepName = 'Bước ${exec.currentIndex + 1}';
+    }
 
     return AppBar(
       title: Column(
