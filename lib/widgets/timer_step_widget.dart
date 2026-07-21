@@ -88,7 +88,7 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
   Widget build(BuildContext context) {
     return Consumer<TimerService>(
       builder: (context, timer, _) {
-        final color = _getTimerColor(timer.status);
+        final color = _getTimerColor(context, timer.status);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,17 +100,15 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
 
             const SizedBox(height: 20),
 
-
-
             // Instruction
             if (widget.step.instruction.isNotEmpty)
               Text(
                 widget.step.instruction,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
+                style: context.textTheme.bodyMedium!.copyWith(
+                  color: context.colors.textSecondary,
                 ),
               ),
-              
+
             const SizedBox(height: 16),
 
             // Blocks
@@ -120,17 +118,17 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
             const SizedBox(height: 32),
 
             // Timer circle
-            Center(child: _buildTimerCircle(timer, color)),
+            Center(child: _buildTimerCircle(context, timer, color)),
 
             const SizedBox(height: 32),
 
             // Timer controls
-            _buildTimerControls(timer),
+            _buildTimerControls(context, timer),
 
             const Spacer(),
 
             // Next button (enabled after completion or anytime)
-            _buildNavButtons(timer),
+            _buildNavButtons(context, timer),
           ],
         );
       },
@@ -148,8 +146,7 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     );
   }
 
-
-  Widget _buildTimerCircle(TimerService timer, Color color) {
+  Widget _buildTimerCircle(BuildContext context, TimerService timer, Color color) {
     return ScaleTransition(
       scale: timer.isRunning ? _pulseAnim : const AlwaysStoppedAnimation(1.0),
       child: SizedBox(
@@ -165,8 +162,7 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
               child: CircularProgressIndicator(
                 value: 1.0,
                 strokeWidth: 10,
-                valueColor:
-                    AlwaysStoppedAnimation(AppColors.surfaceElevated),
+                valueColor: AlwaysStoppedAnimation(context.colors.surfaceElevated),
               ),
             ),
             // Progress
@@ -184,11 +180,19 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(timer.formattedTime, style: AppTextStyles.timerDisplay.copyWith(color: color)),
+                Text(
+                  timer.formattedTime,
+                  style: context.textTheme.displayLarge!.copyWith(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    letterSpacing: -2,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   _getStatusLabel(timer.status),
-                  style: AppTextStyles.bodySmall.copyWith(color: color),
+                  style: context.textTheme.bodySmall!.copyWith(color: color),
                 ),
               ],
             ),
@@ -198,19 +202,20 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     );
   }
 
-  Widget _buildTimerControls(TimerService timer) {
+  Widget _buildTimerControls(BuildContext context, TimerService timer) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Reset
         _controlButton(
+          context: context,
           icon: Icons.replay_rounded,
           label: 'Làm lại',
           onTap: () => timer.start(
             widget.step.durationSeconds ?? 60,
             onCompleted: _onTimerCompleted,
           ),
-          color: AppColors.textSecondary,
+          color: context.colors.textSecondary,
         ),
         const SizedBox(width: 20),
 
@@ -233,11 +238,11 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: context.colors.primary,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.4),
+                  color: context.colors.primary.withValues(alpha: 0.4),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -257,19 +262,21 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
 
         // Skip
         _controlButton(
+          context: context,
           icon: Icons.skip_next_rounded,
           label: 'Bỏ qua',
           onTap: () {
             timer.stop();
             widget.onNext();
           },
-          color: AppColors.textSecondary,
+          color: context.colors.textSecondary,
         ),
       ],
     );
   }
 
   Widget _controlButton({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -283,19 +290,19 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: context.colors.surfaceElevated,
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(height: 4),
-          Text(label, style: AppTextStyles.bodySmall),
+          Text(label, style: context.textTheme.bodySmall),
         ],
       ),
     );
   }
 
-  Widget _buildNavButtons(TimerService timer) {
+  Widget _buildNavButtons(BuildContext context, TimerService timer) {
     return Row(
       children: [
         if (widget.onPrevious != null) ...[
@@ -319,14 +326,15 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
               widget.currentIndex == widget.totalSteps - 1
                   ? 'Hoàn thành'
                   : 'Tiếp tục',
-              style: AppTextStyles.labelLarge.copyWith(
-                color: timer.isCompleted ? Colors.white : AppColors.textHint,
+              style: context.textTheme.labelLarge!.copyWith(
+                color: timer.isCompleted ? Colors.white : context.colors.textHint,
               ),
             ),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor:
-                  timer.isCompleted ? AppColors.success : AppColors.surfaceElevated,
+              backgroundColor: timer.isCompleted
+                  ? context.colors.success
+                  : context.colors.surfaceElevated,
             ),
           ),
         ),
@@ -334,16 +342,16 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     );
   }
 
-  Color _getTimerColor(TimerStatus status) {
+  Color _getTimerColor(BuildContext context, TimerStatus status) {
     switch (status) {
       case TimerStatus.running:
-        return AppColors.timerActive;
+        return context.colors.timerActive;
       case TimerStatus.paused:
-        return AppColors.timerPaused;
+        return context.colors.timerPaused;
       case TimerStatus.completed:
-        return AppColors.timerCompleted;
+        return context.colors.timerCompleted;
       default:
-        return AppColors.textHint;
+        return context.colors.textHint;
     }
   }
 

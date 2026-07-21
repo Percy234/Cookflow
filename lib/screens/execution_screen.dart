@@ -44,20 +44,20 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     return Consumer<ExecutionProvider>(
       builder: (context, exec, _) {
         if (exec.isCompleted) {
-          return _buildCompletionScreen();
+          return _buildCompletionScreen(context);
         }
 
         final step = exec.currentStep;
         if (step == null) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            backgroundColor: context.colors.background,
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
 
         return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: _buildAppBar(exec),
+          backgroundColor: context.colors.background,
+          appBar: _buildAppBar(context, exec),
           body: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: step.isTimerStep
@@ -83,22 +83,23 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(ExecutionProvider exec) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, ExecutionProvider exec) {
     final progress = exec.totalSteps > 0
         ? (exec.currentIndex + 1) / exec.totalSteps
         : 0.0;
 
     final step = exec.currentStep;
     final isTimer = step?.isTimerStep ?? false;
-    final badgeColor = isTimer ? AppColors.primary : AppColors.success;
+    final badgeColor = isTimer ? context.colors.primary : context.colors.success;
     final badgeIcon = isTimer ? Icons.timer_rounded : Icons.check_circle_outline_rounded;
-    
+
     String stepName = step?.name ?? 'Bước ${exec.currentIndex + 1}';
     if (RegExp(r'^(Trang|Bước)\s+\d+$').hasMatch(stepName)) {
       stepName = 'Bước ${exec.currentIndex + 1}';
     }
 
     return AppBar(
+      backgroundColor: context.colors.background,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -115,7 +116,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
                 const SizedBox(width: 6),
                 Text(
                   '$stepName / ${exec.totalSteps}',
-                  style: AppTextStyles.labelLarge.copyWith(color: badgeColor),
+                  style: context.textTheme.labelLarge!.copyWith(color: badgeColor),
                 ),
               ],
             ),
@@ -125,8 +126,8 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppColors.surfaceElevated,
-              valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              backgroundColor: context.colors.surfaceElevated,
+              valueColor: AlwaysStoppedAnimation(context.colors.primary),
               minHeight: 4,
             ),
           ),
@@ -134,15 +135,15 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
       ),
       toolbarHeight: 70,
       leading: IconButton(
-        onPressed: () => _confirmExit(),
-        icon: const Icon(Icons.close_rounded),
+        onPressed: () => _confirmExit(context),
+        icon: Icon(Icons.close_rounded, color: context.colors.textPrimary),
       ),
     );
   }
 
-  Widget _buildCompletionScreen() {
+  Widget _buildCompletionScreen(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -155,53 +156,54 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
                 height: 140,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.success.withValues(alpha: 0.1),
+                  color: context.colors.success.withValues(alpha: 0.1),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.success.withValues(alpha: 0.3),
+                      color: context.colors.success.withValues(alpha: 0.3),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle_rounded,
                   size: 80,
-                  color: AppColors.success,
+                  color: context.colors.success,
                 ),
               ),
               const SizedBox(height: 32),
 
               Text(
                 '🎉 Hoàn thành!',
-                style: AppTextStyles.displayLarge,
+                style: context.textTheme.displayLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
 
               Text(
                 'Bạn đã hoàn thành toàn bộ các bước.\nChúc bạn ngon miệng!',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  color: AppColors.textSecondary,
+                style: context.textTheme.bodyLarge!.copyWith(
+                  color: context.colors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
 
-              // Confetti-style stat cards
+              // Stat cards
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _completionStat(
+                    context: context,
                     icon: Icons.format_list_numbered_rounded,
                     value: '${widget.steps.length}',
                     label: 'bước\nhoàn thành',
                   ),
                   const SizedBox(width: 20),
                   _completionStat(
+                    context: context,
                     icon: Icons.timer_rounded,
-                    value:
-                        '${widget.steps.where((s) => s.isTimerStep).length}',
+                    value: '${widget.steps.where((s) => s.isTimerStep).length}',
                     label: 'bước\nhẹn giờ',
                   ),
                 ],
@@ -216,19 +218,22 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
                   label: const Text('Về trang chủ'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AppColors.success,
+                    backgroundColor: context.colors.success,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () {
-                  context
-                      .read<ExecutionProvider>()
-                      .startExecution(widget.steps);
+                  context.read<ExecutionProvider>().startExecution(widget.steps);
                   context.read<TimerService>().stop();
                 },
-                child: const Text('Làm lại từ đầu'),
+                child: Text(
+                  'Làm lại từ đầu',
+                  style: TextStyle(color: context.colors.textSecondary),
+                ),
               ),
             ],
           ),
@@ -238,6 +243,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
   }
 
   Widget _completionStat({
+    required BuildContext context,
     required IconData icon,
     required String value,
     required String label,
@@ -245,23 +251,24 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colors.divider),
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.primary, size: 28),
+          Icon(icon, color: context.colors.primary, size: 28),
           const SizedBox(height: 8),
           Text(
             value,
-            style: AppTextStyles.displayMedium.copyWith(
-              color: AppColors.primary,
+            style: context.textTheme.displayMedium!.copyWith(
+              color: context.colors.primary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: AppTextStyles.bodySmall,
+            style: context.textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
         ],
@@ -269,15 +276,16 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     );
   }
 
-  void _confirmExit() {
+  void _confirmExit(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceElevated,
-        title: Text('Thoát quy trình?', style: AppTextStyles.headlineMedium),
+        backgroundColor: context.colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Thoát quy trình?', style: context.textTheme.headlineMedium),
         content: Text(
           'Tiến trình thực hiện hiện tại sẽ bị hủy.',
-          style: AppTextStyles.bodyMedium,
+          style: context.textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
@@ -291,7 +299,9 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
+              backgroundColor: context.colors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Thoát'),
           ),

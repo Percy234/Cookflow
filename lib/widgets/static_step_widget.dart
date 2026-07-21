@@ -79,26 +79,24 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
 
             const SizedBox(height: 24),
 
-
-
             // Instruction
             if (widget.step.instruction.isNotEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
+                  color: context.colors.surfaceElevated,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.divider),
+                  border: Border.all(color: context.colors.divider),
                 ),
                 child: Text(
                   widget.step.instruction,
-                  style: AppTextStyles.bodyLarge,
+                  style: context.textTheme.bodyLarge,
                 ),
               ),
 
             const SizedBox(height: 16),
-            
+
             // Blocks
             if (widget.step.blocks.isNotEmpty)
               ...widget.step.blocks.map((b) => StepBlockWidget(block: b)),
@@ -106,7 +104,7 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
             const Spacer(),
 
             // Navigation buttons
-            _buildNavButtons(),
+            _buildNavButtons(context),
           ],
         ),
       ),
@@ -124,8 +122,7 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
     );
   }
 
-
-  Widget _buildNavButtons() {
+  Widget _buildNavButtons(BuildContext context) {
     return Row(
       children: [
         if (widget.onPrevious != null) ...[
@@ -144,7 +141,7 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
               widget.currentIndex == widget.totalSteps - 1
                   ? 'Hoàn thành'
                   : 'Tiếp tục',
-              style: AppTextStyles.labelLarge.copyWith(color: Colors.white),
+              style: context.textTheme.labelLarge!.copyWith(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),

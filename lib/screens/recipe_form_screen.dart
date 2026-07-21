@@ -22,6 +22,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   late TextEditingController _nameController;
   late TextEditingController _descController;
   String? _imagePath;
+  bool _imageError = false; // true khi người dùng cố lưu mà chưa chọn ảnh
   int _difficulty = 0;
   bool _isSaving = false;
 
@@ -57,7 +58,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   }
 
   Future<void> _saveAndContinue() async {
-    if (!_formKey.currentState!.validate()) return;
+    final formValid = _formKey.currentState!.validate();
+    // Validate ảnh bắt buộc
+    final hasImage = _imagePath != null && _imagePath!.isNotEmpty;
+    setState(() => _imageError = !hasImage);
+    if (!formValid || !hasImage) return;
     setState(() => _isSaving = true);
 
     Recipe recipeToEdit;
@@ -107,8 +112,29 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            // Image picker
+            // Image picker (bắt buộc *)
+            Row(
+              children: [
+                Text('Ảnh món ăn', style: context.textTheme.headlineSmall),
+                const SizedBox(width: 4),
+                Text('*', style: context.textTheme.headlineSmall!.copyWith(color: context.colors.error)),
+              ],
+            ),
+            const SizedBox(height: 8),
             _buildImagePicker(),
+            if (_imageError) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.error_outline_rounded, size: 14, color: context.colors.error),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Vui lòng chọn ảnh đại diện cho món ăn',
+                    style: context.textTheme.bodySmall!.copyWith(color: context.colors.error),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 32),
 
             // Name
@@ -183,18 +209,29 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   }
 
   Widget _buildImagePicker() {
+    final borderColor = _imageError
+        ? context.colors.error
+        : _imagePath != null
+            ? context.colors.primary
+            : context.colors.divider;
+    final borderWidth = (_imageError || _imagePath != null) ? 1.5 : 1.0;
+
     return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
+      onTap: () {
+        _pickImage();
+        // Xoá lỗi khi người dùng nhấn vào vùng chọn ảnh
+        if (_imageError) setState(() => _imageError = false);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         height: 220,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: context.colors.surfaceElevated,
+          color: _imageError
+              ? context.colors.error.withValues(alpha: 0.04)
+              : context.colors.surfaceElevated,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _imagePath != null ? context.colors.primary : context.colors.divider,
-            width: _imagePath != null ? 1.5 : 1,
-          ),
+          border: Border.all(color: borderColor, width: borderWidth),
         ),
         clipBehavior: Clip.antiAlias,
         child: _imagePath != null
@@ -225,20 +262,36 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: context.colors.primary.withValues(alpha: 0.1),
+                      color: _imageError
+                          ? context.colors.error.withValues(alpha: 0.1)
+                          : context.colors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.add_photo_alternate_rounded,
+                      _imageError
+                          ? Icons.broken_image_outlined
+                          : Icons.add_photo_alternate_rounded,
                       size: 40,
-                      color: context.colors.primary,
+                      color: _imageError ? context.colors.error : context.colors.primary,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Thêm ảnh món ăn',
-                    style: context.textTheme.labelLarge!.copyWith(color: context.colors.textSecondary),
+                    _imageError ? 'Bắt buộc phải chọn ảnh' : 'Thêm ảnh món ăn',
+                    style: context.textTheme.labelLarge!.copyWith(
+                      color: _imageError ? context.colors.error : context.colors.textSecondary,
+                      fontWeight: _imageError ? FontWeight.w600 : FontWeight.normal,
+                    ),
                   ),
+                  if (_imageError) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Nhấn để chọn ảnh từ thư viện',
+                      style: context.textTheme.bodySmall!.copyWith(
+                        color: context.colors.error.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ],
               ),
       ),
