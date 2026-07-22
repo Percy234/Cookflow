@@ -9,8 +9,19 @@ import '../widgets/recipe_card.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_form_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+/// View mode for the recipe list.
+enum _ViewMode { list, grid }
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  _ViewMode _viewMode = _ViewMode.list;
 
   @override
   Widget build(BuildContext context) {
@@ -22,34 +33,46 @@ class HomeScreen extends StatelessWidget {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // ── Sticky top bar: logo + theme toggle ──────────────
+            // ── Sticky top bar ──────────────────────────────────────
             SliverPersistentHeader(
               pinned: true,
               delegate: _StickyHeaderDelegate(
                 child: _buildTopBar(context, themeProvider),
               ),
             ),
-            // ── Scrollable hero header ────────────────────────────
+            // ── Hero header ─────────────────────────────────────────
             SliverToBoxAdapter(
               child: _buildHeroHeader(context),
             ),
-            // ── Content: empty state or recipe grid ──────────────
-            SliverToBoxAdapter(
-              child: Consumer<RecipeProvider>(
-                builder: (context, provider, _) {
-                  if (provider.recipes.isEmpty) {
-                    return _buildEmptyState(context);
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
+            // ── Section header with view toggle ─────────────────────
             Consumer<RecipeProvider>(
               builder: (context, provider, _) {
                 if (provider.recipes.isEmpty) {
                   return const SliverToBoxAdapter(child: SizedBox.shrink());
                 }
-                return _buildRecipeGrid(context, provider.recipes, provider);
+                return SliverToBoxAdapter(
+                  child: _buildSectionHeader(context),
+                );
+              },
+            ),
+            // ── Empty state ─────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Consumer<RecipeProvider>(
+                builder: (context, provider, _) {
+                  if (provider.recipes.isEmpty) return _buildEmptyState(context);
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+            // ── Recipe list / grid ──────────────────────────────────────
+            Consumer<RecipeProvider>(
+              builder: (context, provider, _) {
+                if (provider.recipes.isEmpty) {
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
+                }
+                return _viewMode == _ViewMode.list
+                    ? _buildListView(context, provider.recipes, provider)
+                    : _buildGridView(context, provider.recipes, provider);
               },
             ),
           ],
@@ -73,7 +96,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── Top bar: brand wordmark left + theme icon right ─────────────────
+  // ── Top bar ─────────────────────────────────────────────────────────
   Widget _buildTopBar(BuildContext context, ThemeProvider themeProvider) {
     final isDark = themeProvider.isDarkMode;
     return ClipRect(
@@ -122,7 +145,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              // Theme toggle — contained in a circle pill
+              // Theme toggle
               GestureDetector(
                 onTap: () => themeProvider.toggleTheme(),
                 child: AnimatedContainer(
@@ -149,7 +172,76 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── Hero header: greeting + dynamic sub-headline ────────────────────
+  // ── Section header: label + toggle button ────────────────────────────
+  Widget _buildSectionHeader(BuildContext context) {
+    final isGrid = _viewMode == _ViewMode.grid;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 20, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Công thức của bạn',
+            style: context.textTheme.headlineSmall!.copyWith(
+              color: context.colors.textSecondary,
+            ),
+          ),
+          // Toggle pill button
+          GestureDetector(
+            onTap: () => setState(() {
+              _viewMode = isGrid ? _ViewMode.list : _ViewMode.grid;
+            }),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.colors.primary.withValues(alpha: isGrid ? 0.12 : 0.08),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: context.colors.primary.withValues(alpha: isGrid ? 0.4 : 0.25),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, anim) => ScaleTransition(
+                      scale: anim,
+                      child: FadeTransition(opacity: anim, child: child),
+                    ),
+                    child: Icon(
+                      isGrid ? Icons.view_agenda_rounded : Icons.grid_view_rounded,
+                      key: ValueKey(isGrid),
+                      size: 15,
+                      color: context.colors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, anim) =>
+                        FadeTransition(opacity: anim, child: child),
+                    child: Text(
+                      isGrid ? 'Danh sách' : 'Lưới 2 cột',
+                      key: ValueKey(isGrid),
+                      style: context.textTheme.bodySmall!.copyWith(
+                        color: context.colors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Hero header ──────────────────────────────────────────────────────
   Widget _buildHeroHeader(BuildContext context) {
     final hour = DateTime.now().hour;
     final String greeting;
@@ -193,7 +285,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── Empty state ─────────────────────────────────────────────────────
+  // ── Empty state ──────────────────────────────────────────────────────
   Widget _buildEmptyState(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -241,12 +333,12 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecipeGrid(
+  // ── LIST MODE: alternating bento (1 large → 2 small) ────────────────
+  Widget _buildListView(
     BuildContext context,
     List<Recipe> recipes,
     RecipeProvider provider,
   ) {
-    // Alternating rhythm: 1 full-width large card, then 2 small side-by-side
     final List<List<Recipe>> chunks = [];
     int i = 0;
     while (i < recipes.length) {
@@ -270,21 +362,16 @@ class HomeScreen extends StatelessWidget {
         delegate: SliverChildBuilderDelegate(
           (context, chunkIndex) {
             final chunk = chunks[chunkIndex];
-
             if (chunk.length == 1) {
-              final recipe = chunk[0];
-              final stepCount = (recipe.pages != null && recipe.pages!.isNotEmpty)
-                  ? recipe.pages!.fold<int>(0, (sum, page) => sum + page.stepIds.length)
-                  : recipe.stepIds.length;
-
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: RecipeCard(
-                  recipe: recipe,
-                  stepCount: stepCount,
+                  recipe: chunk[0],
+                  stepCount: _stepCount(chunk[0]),
                   isLarge: true,
-                  onTap: () => _openRecipeDetail(context, recipe),
-                  onLongPress: () => _showRecipeOptions(context, recipe, provider),
+                  onTap: () => _openRecipeDetail(context, chunk[0]),
+                  onLongPress: () =>
+                      _showRecipeOptions(context, chunk[0], provider),
                 ),
               );
             } else {
@@ -293,9 +380,11 @@ class HomeScreen extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _buildSmallCard(context, chunk[0], provider)),
+                    Expanded(
+                        child: _buildSmallCard(context, chunk[0], provider)),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildSmallCard(context, chunk[1], provider)),
+                    Expanded(
+                        child: _buildSmallCard(context, chunk[1], provider)),
                   ],
                 ),
               );
@@ -307,20 +396,65 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // ── GRID MODE: uniform 2-column grid ────────────────────────────────
+  Widget _buildGridView(
+    BuildContext context,
+    List<Recipe> recipes,
+    RecipeProvider provider,
+  ) {
+    final List<List<Recipe>> rows = [];
+    for (int i = 0; i < recipes.length; i += 2) {
+      if (i + 1 < recipes.length) {
+        rows.add([recipes[i], recipes[i + 1]]);
+      } else {
+        rows.add([recipes[i]]);
+      }
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, rowIndex) {
+            final row = rows[rowIndex];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildSmallCard(context, row[0], provider)),
+                  const SizedBox(width: 14),
+                  if (row.length > 1)
+                    Expanded(
+                        child: _buildSmallCard(context, row[1], provider))
+                  else
+                    const Expanded(child: SizedBox.shrink()),
+                ],
+              ),
+            );
+          },
+          childCount: rows.length,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSmallCard(
       BuildContext context, Recipe recipe, RecipeProvider provider) {
-    final stepCount = (recipe.pages != null && recipe.pages!.isNotEmpty)
-        ? recipe.pages!.fold<int>(0, (sum, page) => sum + page.stepIds.length)
-        : recipe.stepIds.length;
-
     return RecipeCard(
       recipe: recipe,
-      stepCount: stepCount,
+      stepCount: _stepCount(recipe),
       isLarge: false,
       onTap: () => _openRecipeDetail(context, recipe),
       onLongPress: () => _showRecipeOptions(context, recipe, provider),
     );
   }
+
+  int _stepCount(Recipe recipe) =>
+      (recipe.pages != null && recipe.pages!.isNotEmpty)
+          ? recipe.pages!
+              .fold<int>(0, (sum, page) => sum + page.stepIds.length)
+          : recipe.stepIds.length;
 
   void _openRecipeForm(BuildContext context, {Recipe? recipe}) {
     Navigator.push(

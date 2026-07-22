@@ -140,6 +140,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       case 'col': return BlockType.column;
       case 'row': return BlockType.row;
       case 'table': return BlockType.table;
+      case 'spacer': return BlockType.spacer;
       default: return BlockType.text;
     }
   }
@@ -166,6 +167,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
           ]
         });
       case BlockType.table: return jsonEncode([["", ""], ["", ""]]);
+      case BlockType.spacer: return jsonEncode({'height': 32});
     }
   }
 
@@ -1467,6 +1469,64 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             }).toList(),
           ),
         );
+
+      case BlockType.spacer:
+        // Parse height from content JSON, default 32
+        int spacerHeight = 32;
+        try {
+          final decoded = jsonDecode(block.content);
+          if (decoded is Map && decoded['height'] != null) {
+            spacerHeight = (decoded['height'] as num).toInt();
+          }
+        } catch (_) {}
+
+        if (_isPreviewMode) {
+          return SizedBox(height: spacerHeight.toDouble());
+        }
+
+        // Editor: tappable dashed line — height controls are in the bottom panel
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _focusedStyleBlock = block;
+              _onFocusedStyleBlockChanged = () {
+                if (onContentChanged != null) {
+                  onContentChanged();
+                } else {
+                  setState(() {});
+                }
+              };
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomPaint(
+                  painter: _DashedLinePainter(
+                    color: (_focusedStyleBlock?.id == block.id
+                        ? context.colors.primary
+                        : context.colors.textHint)
+                        .withValues(alpha: 0.5),
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: spacerHeight.clamp(8, 200).toDouble(),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Khoảng cách  ↕  ${spacerHeight}px  •  Chạm để chỉnh',
+                  style: context.textTheme.bodySmall!.copyWith(
+                    color: context.colors.textHint,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
     }
   }
 
@@ -1508,6 +1568,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               PopupMenuItem(value: 'col', child: Text('Cột')),
               PopupMenuItem(value: 'row', child: Text('Hàng')),
               PopupMenuItem(value: 'table', child: Text('Bảng')),
+              PopupMenuItem(value: 'spacer', child: Text('Khoảng cách')),
             ],
           )),
         ],
@@ -1630,6 +1691,7 @@ class _StyleEditorPanelState extends State<_StyleEditorPanel> {
   late TextEditingController _colorController;
   late TextEditingController _widthController;
   late TextEditingController _heightController;
+  late TextEditingController _spacerHeightController;
 
   @override
   void initState() {
@@ -1639,6 +1701,18 @@ class _StyleEditorPanelState extends State<_StyleEditorPanel> {
     _colorController = TextEditingController(text: widget.block.color ?? '');
     _widthController = TextEditingController(text: widget.block.width != null ? widget.block.width!.round().toString() : '');
     _heightController = TextEditingController(text: widget.block.height != null ? widget.block.height!.round().toString() : '');
+
+    // Spacer height controller — reads from block.content JSON
+    int initialSpacerH = 32;
+    if (widget.block.type == BlockType.spacer) {
+      try {
+        final decoded = jsonDecode(widget.block.content);
+        if (decoded is Map && decoded['height'] != null) {
+          initialSpacerH = (decoded['height'] as num).toInt();
+        }
+      } catch (_) {}
+    }
+    _spacerHeightController = TextEditingController(text: initialSpacerH.toString());
   }
 
   @override
@@ -1647,6 +1721,7 @@ class _StyleEditorPanelState extends State<_StyleEditorPanel> {
     _colorController.dispose();
     _widthController.dispose();
     _heightController.dispose();
+    _spacerHeightController.dispose();
     super.dispose();
   }
 
@@ -1680,7 +1755,11 @@ class _StyleEditorPanelState extends State<_StyleEditorPanel> {
         ),
         const SizedBox(height: 12),
         Text(
-          (block.type == BlockType.image || block.type == BlockType.images) ? 'Định dạng hình ảnh' : 'Định dạng văn bản', 
+          block.type == BlockType.spacer
+              ? 'Khoảng cách'
+              : (block.type == BlockType.image || block.type == BlockType.images)
+                  ? 'Định dạng hình ảnh'
+                  : 'Định dạng văn bản',
           style: context.textTheme.headlineMedium
         ),
         const SizedBox(height: 24),
@@ -1782,7 +1861,98 @@ class _StyleEditorPanelState extends State<_StyleEditorPanel> {
           const SizedBox(height: 8),
           _buildColorPicker(),
         ],
-        if (block.type != BlockType.image && block.type != BlockType.images && block.type != BlockType.column && block.type != BlockType.row) ...[
+        // ─── Spacer: height controls only ───
+        if (block.type == BlockType.spacer) ...[
+          Text('Kích thước cố định', style: context.textTheme.labelMedium),
+          const SizedBox(height: 10),
+          Builder(builder: (ctx) {
+            // Read current height from content JSON
+            int curH = 32;
+            try {
+              final decoded = jsonDecode(block.content);
+              if (decoded is Map && decoded['height'] != null) {
+                curH = (decoded['height'] as num).toInt();
+              }
+            } catch (_) {}
+
+            void setHeight(int h) {
+              _updateStyle(() {
+                block.content = jsonEncode({'height': h});
+              });
+              _spacerHeightController.text = h.toString();
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [8, 16, 32, 64, 96].map((h) {
+                    final selected = curH == h;
+                    return GestureDetector(
+                      onTap: () => setHeight(h),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? context.colors.primary.withValues(alpha: 0.15)
+                              : context.colors.surfaceElevated,
+                          border: Border.all(
+                            color: selected ? context.colors.primary : context.colors.divider,
+                            width: selected ? 1.5 : 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Text(
+                          '${h}px',
+                          style: context.textTheme.bodyMedium!.copyWith(
+                            color: selected ? context.colors.primary : context.colors.textSecondary,
+                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+                Text('Tùy chỉnh chiều cao', style: context.textTheme.labelMedium),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: TextFormField(
+                        controller: _spacerHeightController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        decoration: InputDecoration(
+                          suffixText: 'px',
+                          hintText: '$curH',
+                        ),
+                        onChanged: (val) {
+                          final parsed = int.tryParse(val);
+                          if (parsed != null && parsed > 0) {
+                            setHeight(parsed);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Nhập số nguyên dương',
+                      style: context.textTheme.bodySmall!.copyWith(
+                        color: context.colors.textHint,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          }),
+        ],
+        if (block.type != BlockType.image && block.type != BlockType.images && block.type != BlockType.column && block.type != BlockType.row && block.type != BlockType.spacer) ...[
         if (block.type == BlockType.checkbox || block.type == BlockType.checklist) ...[
           Text('Kiểu Checkbox', style: context.textTheme.labelMedium),
           const SizedBox(height: 8),
@@ -2129,4 +2299,31 @@ class _StyleEditorPanelState extends State<_StyleEditorPanel> {
       ),
     );
   }
+}
+
+/// Draws a dashed horizontal line through the vertical center of its bounding box.
+/// Used to visualise a spacer block in the editor.
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  const _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 8.0;
+    const dashGap = 6.0;
+    final y = size.height / 2;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, y), Offset((x + dashWidth).clamp(0, size.width), y), paint);
+      x += dashWidth + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedLinePainter old) => old.color != color;
 }

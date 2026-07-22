@@ -33,6 +33,9 @@ enum BlockType {
 
   @HiveField(9)
   ordered,
+
+  @HiveField(10)
+  spacer,
 }
 
 @HiveType(typeId: 4)

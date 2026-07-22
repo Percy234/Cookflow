@@ -54,7 +54,15 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
     return null;
   }
 
-  TextStyle _getTextStyle({double defaultSize = 16.0, bool isHeading = false}) {
+  /// Returns the text color to use:
+  /// - If user set a custom color → use it as-is.
+  /// - If no color set (default) → use theme-aware textPrimary so dark-mode works.
+  Color _resolveTextColor(BuildContext context) {
+    final custom = _parseColor(widget.block.color);
+    return custom ?? context.colors.textPrimary;
+  }
+
+  TextStyle _getTextStyle(BuildContext context, {double defaultSize = 16.0, bool isHeading = false}) {
     final b = widget.block;
     final baseStyle = isHeading ? AppTextStyles.displayLarge : AppTextStyles.bodyLarge;
     return baseStyle.copyWith(
@@ -62,7 +70,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
       fontStyle: (b.isItalic ?? false) ? FontStyle.italic : FontStyle.normal,
       decoration: (b.isUnderline ?? false) ? TextDecoration.underline : TextDecoration.none,
       fontSize: b.fontSize ?? defaultSize,
-      color: _parseColor(b.color),
+      color: _resolveTextColor(context),
     );
   }
 
@@ -105,7 +113,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Text(
             block.content,
-            style: _getTextStyle(defaultSize: defaultSize, isHeading: true),
+            style: _getTextStyle(context, defaultSize: defaultSize, isHeading: true),
             textAlign: _getTextAlign(),
           ),
         );
@@ -116,7 +124,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
           padding: const EdgeInsets.symmetric(vertical: 4.0),
           child: Text(
             block.content,
-            style: _getTextStyle(defaultSize: 16.0),
+            style: _getTextStyle(context, defaultSize: 16.0),
             textAlign: _getTextAlign(),
           ),
         );
@@ -199,9 +207,11 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
                 Expanded(
                   child: Text(
                     block.content,
-                    style: _getTextStyle().copyWith(
+                    style: _getTextStyle(context).copyWith(
                       decoration: _checkboxValue ? TextDecoration.lineThrough : null,
-                      color: _checkboxValue ? AppColors.textHint : _parseColor(block.color),
+                      color: _checkboxValue
+                          ? context.colors.textHint
+                          : _resolveTextColor(context),
                     ),
                     textAlign: _getTextAlign(),
                   ),
@@ -262,9 +272,11 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
                       Expanded(
                         child: Text(
                           text,
-                          style: _getTextStyle().copyWith(
+                          style: _getTextStyle(context).copyWith(
                             decoration: isChecked ? TextDecoration.lineThrough : null,
-                            color: isChecked ? AppColors.textHint : _parseColor(block.color),
+                            color: isChecked
+                                ? context.colors.textHint
+                                : _resolveTextColor(context),
                           ),
                           textAlign: _getTextAlign(),
                         ),
@@ -314,16 +326,16 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
                       alignment: Alignment.topRight,
                       child: Text(
                         getPrefix(idx),
-                        style: _getTextStyle().copyWith(
+                        style: _getTextStyle(context).copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: context.colors.primary,
                         ),
                       ),
                     ),
                     Expanded(
                       child: Text(
                         text,
-                        style: _getTextStyle(),
+                        style: _getTextStyle(context),
                         textAlign: _getTextAlign(),
                       ),
                     ),
@@ -433,24 +445,31 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
         try { grid = jsonDecode(block.content); } catch (_) {}
         if (grid.isEmpty) return const SizedBox.shrink();
 
+        // Use theme-aware colors for border and cell background (default path)
+        final tableBorderColor = context.colors.divider;
+        final tableCellBg = context.colors.surface;
+        final tableCellTextStyle = AppTextStyles.bodyMedium.copyWith(
+          color: context.colors.textPrimary,
+        );
+
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: Table(
             border: TableBorder.all(
-              color: AppColors.divider,
+              color: tableBorderColor,
               width: 1,
               borderRadius: BorderRadius.circular(8),
             ),
             children: grid.map<TableRow>((row) {
               List<dynamic> cells = row;
               return TableRow(
-                decoration: BoxDecoration(color: AppColors.surface),
+                decoration: BoxDecoration(color: tableCellBg),
                 children: cells.map<Widget>((cellText) {
                   return Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Text(
                       cellText.toString(),
-                      style: AppTextStyles.bodyMedium,
+                      style: tableCellTextStyle,
                       textAlign: TextAlign.center,
                     ),
                   );
@@ -459,6 +478,17 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
             }).toList(),
           ),
         );
+
+      case BlockType.spacer:
+        // Spacer: always renders, height from JSON content {'height': N}
+        double spacerH = 32;
+        try {
+          final decoded = jsonDecode(block.content);
+          if (decoded is Map && decoded['height'] != null) {
+            spacerH = (decoded['height'] as num).toDouble();
+          }
+        } catch (_) {}
+        return SizedBox(height: spacerH);
 
       default:
         return const SizedBox.shrink();

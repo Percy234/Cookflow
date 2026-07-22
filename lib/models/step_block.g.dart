@@ -103,6 +103,8 @@ class BlockTypeAdapter extends TypeAdapter<BlockType> {
         return BlockType.table;
       case 9:
         return BlockType.ordered;
+      case 10:
+        return BlockType.spacer;
       default:
         return BlockType.heading;
     }
@@ -140,6 +142,9 @@ class BlockTypeAdapter extends TypeAdapter<BlockType> {
         break;
       case BlockType.ordered:
         writer.writeByte(9);
+        break;
+      case BlockType.spacer:
+        writer.writeByte(10);
         break;
     }
   }
