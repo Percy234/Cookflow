@@ -30,7 +30,7 @@ class RecipeEditorScreen extends StatefulWidget {
 class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   bool _isPreviewMode = false;
   int _selectedPageIndex = 0;
-  List<RecipePage> _pages = [RecipePage(id: const Uuid().v4(), name: 'Bước 1')];
+  List<RecipePage> _pages = [RecipePage(id: const Uuid().v4(), name: 'Trang 1')];
   final Map<String, List<StepBlock>> _pageBlocks = {};
 
   List<StepBlock> get _blocks {
@@ -399,6 +399,25 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                       icon: const Icon(Icons.check_circle_outline, size: 20),
                       label: const Text('Hoàn thành', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       onPressed: () async {
+                        // VALIDATE: Each page must have at least one valid data block
+                        for (int i = 0; i < _pages.length; i++) {
+                          final page = _pages[i];
+                          final blocks = _pageBlocks[page.id] ?? [];
+                          final hasData = blocks.any((b) => _hasData(b));
+                          if (!hasData) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Trang "${page.name}" chưa có nội dung. Vui lòng thêm dữ liệu hoặc xóa trang!'),
+                                backgroundColor: context.colors.error,
+                              ),
+                            );
+                            setState(() {
+                              _selectedPageIndex = i;
+                            });
+                            return;
+                          }
+                        }
+
                         // Save all _pageBlocks into StepModels in Hive
                         for (final page in _pages) {
                           String stepId;
@@ -585,7 +604,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             IconButton(
               icon: Icon(Icons.add, color: context.colors.textPrimary),
               onPressed: _addNewPage,
-              tooltip: 'Thêm bước mới',
+              tooltip: 'Thêm trang mới',
             ),
         ],
       ),
@@ -597,14 +616,14 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.colors.surfaceElevated,
-        title: Text('Chọn loại bước', style: context.textTheme.headlineMedium),
+        title: Text('Chọn loại trang', style: context.textTheme.headlineMedium),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: Icon(Icons.article_outlined, color: context.colors.primary),
-              title: const Text('Static Step'),
-              subtitle: const Text('Bước hướng dẫn thông thường'),
+              title: const Text('Trang tĩnh'),
+              subtitle: const Text('Trang nội dung thông thường'),
               onTap: () {
                 Navigator.pop(context);
                 _createPage('static');
@@ -612,8 +631,8 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             ),
             ListTile(
               leading: Icon(Icons.timer_outlined, color: context.colors.primary),
-              title: const Text('Timer Step'),
-              subtitle: const Text('Bước có đếm thời gian'),
+              title: const Text('Trang đếm thời gian'),
+              subtitle: const Text('Trang có đồng hồ đếm ngược'),
               onTap: () {
                 Navigator.pop(context);
                 _createPage('timer');
@@ -629,7 +648,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     setState(() {
       final newPage = RecipePage(
         id: const Uuid().v4(), 
-        name: 'Bước ${_pages.length + 1}',
+        name: 'Trang ${_pages.length + 1}',
         type: type,
         duration: type == 'timer' ? 300 : null, // Default 5 minutes
       );
@@ -704,6 +723,76 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     );
   }
 
+  bool _hasData(StepBlock block) {
+    if (block.type == BlockType.spacer) return false;
+
+    if (block.type == BlockType.column) {
+      try {
+        final data = jsonDecode(block.content) as Map;
+        final cols = data['cols'] as List;
+        for (var col in cols) {
+          final subBlocks = col['blocks'] as List;
+          for (var sb in subBlocks) {
+            final typeStr = sb['type'] ?? 'text';
+            final parsedType = BlockType.values.firstWhere((e) => e.name == typeStr, orElse: () => BlockType.text);
+            final dummyBlock = StepBlock(id: '', type: parsedType, content: sb['content'] ?? '');
+            if (_hasData(dummyBlock)) return true;
+          }
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    if (block.type == BlockType.row) {
+      try {
+        final data = jsonDecode(block.content) as Map;
+        final rows = data['rows'] as List;
+        for (var row in rows) {
+          final subBlocks = row['blocks'] as List;
+          for (var sb in subBlocks) {
+            final typeStr = sb['type'] ?? 'text';
+            final parsedType = BlockType.values.firstWhere((e) => e.name == typeStr, orElse: () => BlockType.text);
+            final dummyBlock = StepBlock(id: '', type: parsedType, content: sb['content'] ?? '');
+            if (_hasData(dummyBlock)) return true;
+          }
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    if (block.type == BlockType.table) {
+      try {
+        final rows = jsonDecode(block.content) as List<dynamic>;
+        for (var row in rows) {
+          if (row is List && row.any((cell) => cell.toString().trim().isNotEmpty)) return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    if (block.type == BlockType.checklist ||
+        block.type == BlockType.ordered ||
+        block.type == BlockType.checkbox) {
+      try {
+        final items = jsonDecode(block.content) as List<dynamic>;
+        return items.isNotEmpty && items.any((item) => (item['text'] as String? ?? '').trim().isNotEmpty);
+      } catch (_) {
+        return block.content.trim().isNotEmpty;
+      }
+    } else if (block.type == BlockType.image) {
+      return block.content.trim().isNotEmpty;
+    } else if (block.type == BlockType.images) {
+      try {
+        final list = jsonDecode(block.content) as List<dynamic>;
+        return list.isNotEmpty;
+      } catch (_) {
+        return false;
+      }
+    } else {
+      return block.content.trim().isNotEmpty;
+    }
+  }
+
   void _deletePage(int index) {
     if (_pages.length <= 1) return;
     setState(() {
@@ -722,13 +811,13 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.colors.surfaceElevated,
-        title: Text('Đổi tên bước', style: context.textTheme.headlineMedium),
+        title: Text('Đổi tên trang', style: context.textTheme.headlineMedium),
         content: TextField(
           controller: controller,
           style: context.textTheme.bodyLarge,
           autofocus: true,
           decoration: const InputDecoration(
-            hintText: 'Nhập tên bước',
+            hintText: 'Nhập tên trang',
           ),
         ),
         actions: [

@@ -24,6 +24,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   String? _imagePath;
   bool _imageError = false; // true khi người dùng cố lưu mà chưa chọn ảnh
   int _difficulty = 0;
+  String? _estimatedTime;
   bool _isSaving = false;
 
   bool get _isEditing => widget.recipe != null;
@@ -36,6 +37,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     _descController = TextEditingController(text: r?.description ?? '');
     _imagePath = r?.imagePath;
     _difficulty = r?.difficulty ?? 0;
+    _estimatedTime = r?.estimatedTime;
   }
 
   @override
@@ -74,6 +76,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         imagePath: _imagePath,
         clearImage: _imagePath == null,
         difficulty: _difficulty,
+        estimatedTime: _estimatedTime,
       );
     } else {
       recipeToEdit = Recipe(
@@ -82,6 +85,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         description: _descController.text.trim(),
         imagePath: _imagePath,
         difficulty: _difficulty,
+        estimatedTime: _estimatedTime,
       );
     }
 
@@ -162,6 +166,12 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             Text('Mức độ khó', style: context.textTheme.headlineSmall),
             const SizedBox(height: 12),
             _buildDifficultySelector(),
+            const SizedBox(height: 24),
+
+            // Estimated Time
+            Text('Thời gian ước tính', style: context.textTheme.headlineSmall),
+            const SizedBox(height: 12),
+            _buildEstimatedTimeSelector(),
             const SizedBox(height: 24),
 
             // Description
@@ -330,6 +340,49 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         foregroundColor: context.colors.textSecondary,
         side: BorderSide(color: context.colors.divider),
       ),
+    );
+  }
+
+  Widget _buildEstimatedTimeSelector() {
+    final times = ['<5p', '<10p', '<15p', '<20p', '<30p', '>30p'];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 16) / 3;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: times.map((time) {
+            final selected = _estimatedTime == time;
+            return SizedBox(
+              width: itemWidth,
+              child: ChoiceChip(
+                label: Container(
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  child: Text(time),
+                ),
+                showCheckmark: false,
+                labelPadding: EdgeInsets.zero,
+                selected: selected,
+                onSelected: (val) {
+                  setState(() {
+                    _estimatedTime = val ? time : null;
+                  });
+                },
+                selectedColor: context.colors.primary.withValues(alpha: 0.15),
+                backgroundColor: context.colors.surfaceElevated,
+                labelStyle: TextStyle(
+                  color: selected ? context.colors.primary : context.colors.textSecondary,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
+                side: BorderSide(
+                  color: selected ? context.colors.primary : context.colors.divider,
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

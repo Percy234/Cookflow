@@ -37,6 +37,9 @@ class Recipe extends HiveObject {
   @HiveField(9, defaultValue: 0)
   int difficulty; // 0: Dễ, 1: Trung bình, 2: Khó
 
+  @HiveField(10)
+  String? estimatedTime;
+
   Recipe({
     required this.id,
     required this.name,
@@ -48,6 +51,7 @@ class Recipe extends HiveObject {
     this.additionalInfo,
     DateTime? createdAt,
     this.difficulty = 0,
+    this.estimatedTime,
   })  : ingredients = ingredients ?? [],
         stepIds = stepIds ?? [],
         createdAt = createdAt ?? DateTime.now();
@@ -63,6 +67,7 @@ class Recipe extends HiveObject {
     String? additionalInfo,
     bool clearImage = false,
     int? difficulty,
+    String? estimatedTime,
   }) {
     return Recipe(
       id: id ?? this.id,
@@ -75,6 +80,7 @@ class Recipe extends HiveObject {
       additionalInfo: additionalInfo ?? this.additionalInfo,
       createdAt: createdAt,
       difficulty: difficulty ?? this.difficulty,
+      estimatedTime: estimatedTime ?? this.estimatedTime,
     );
   }
 }

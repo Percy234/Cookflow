@@ -113,9 +113,16 @@ class _RecipeCardState extends State<RecipeCard> {
                             label: '${widget.recipe.ingredients.length} nguyên liệu',
                             color: context.colors.info,
                           ),
+                        if (widget.recipe.estimatedTime != null)
+                          _buildChip(
+                            icon: Icons.timer_outlined,
+                            label: widget.recipe.estimatedTime!,
+                            color: context.colors.primary, // or any color you prefer
+                          ),
                         _buildDifficultyChip(widget.recipe.difficulty, context),
                       ],
                     ),
+
                   ],
                 ),
               ),

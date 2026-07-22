@@ -99,6 +99,41 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
   Widget build(BuildContext context) {
     final block = widget.block;
 
+    // ── Skip empty blocks ───────────────────────────────────────────────
+    // Spacer is intentional whitespace — always render it.
+    // For list/checklist/ordered: treat as empty if the decoded list has
+    // no items, or every item's text is blank.
+    // For all other types: treat as empty when content is blank.
+    if (block.type != BlockType.spacer) {
+      bool isEmpty = false;
+
+      if (block.type == BlockType.checklist ||
+          block.type == BlockType.ordered ||
+          block.type == BlockType.checkbox) {
+        try {
+          final items = jsonDecode(block.content) as List<dynamic>;
+          isEmpty = items.isEmpty ||
+              items.every((item) => (item['text'] as String? ?? '').trim().isEmpty);
+        } catch (_) {
+          isEmpty = block.content.trim().isEmpty;
+        }
+      } else if (block.type == BlockType.image) {
+        // image blocks with no path are hidden
+        isEmpty = block.content.trim().isEmpty;
+      } else if (block.type == BlockType.images) {
+        try {
+          final list = jsonDecode(block.content) as List<dynamic>;
+          isEmpty = list.isEmpty;
+        } catch (_) {
+          isEmpty = true;
+        }
+      } else {
+        isEmpty = block.content.trim().isEmpty;
+      }
+
+      if (isEmpty) return const SizedBox.shrink();
+    }
+
     switch (block.type) {
       case BlockType.heading:
         double defaultSize = 32.0;

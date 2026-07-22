@@ -109,18 +109,11 @@ class _HomeScreenState extends State<HomeScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Logo + brand name
+              // Brand name (Logo removed as requested)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/images/recipe.png',
-                    width: 36,
-                    height: 36,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 10),
                   RichText(
                     text: TextSpan(
                       children: [
@@ -194,45 +187,26 @@ class _HomeScreenState extends State<HomeScreen>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: context.colors.primary.withValues(alpha: isGrid ? 0.12 : 0.08),
-                borderRadius: BorderRadius.circular(24),
+                shape: BoxShape.circle,
                 border: Border.all(
                   color: context.colors.primary.withValues(alpha: isGrid ? 0.4 : 0.25),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder: (child, anim) => ScaleTransition(
-                      scale: anim,
-                      child: FadeTransition(opacity: anim, child: child),
-                    ),
-                    child: Icon(
-                      isGrid ? Icons.view_agenda_rounded : Icons.grid_view_rounded,
-                      key: ValueKey(isGrid),
-                      size: 15,
-                      color: context.colors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder: (child, anim) =>
-                        FadeTransition(opacity: anim, child: child),
-                    child: Text(
-                      isGrid ? 'Danh sách' : 'Lưới 2 cột',
-                      key: ValueKey(isGrid),
-                      style: context.textTheme.bodySmall!.copyWith(
-                        color: context.colors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) => ScaleTransition(
+                  scale: anim,
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+                child: Icon(
+                  isGrid ? Icons.view_agenda_rounded : Icons.grid_view_rounded,
+                  key: ValueKey(isGrid),
+                  size: 20,
+                  color: context.colors.primary,
+                ),
               ),
             ),
           ),
