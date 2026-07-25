@@ -162,6 +162,8 @@ class RecipeDetailScreen extends StatelessWidget {
                   ),
                 ),
               );
+            } else if (value == 3) {
+              _confirmDeleteRecipe(context, recipe, provider);
             }
           },
           itemBuilder: (context) => [
@@ -196,6 +198,16 @@ class RecipeDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
+            PopupMenuItem(
+              value: 3,
+              child: Row(
+                children: [
+                  Icon(Icons.delete_forever_rounded, size: 20, color: context.colors.primary),
+                  const SizedBox(width: 12),
+                  const Text('Xóa công thức'),
+                ],
+              ),
+            ),
           ],
         ),
       ],
@@ -214,6 +226,31 @@ class RecipeDetailScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final itemWidth = screenWidth * 0.8;
     final itemHeight = itemWidth * (9 / 16);
+
+    if (recipe.descriptionImages.length == 1) {
+      final singleWidth = screenWidth - 48; // Screen width minus horizontal padding (24 * 2)
+      final singleHeight = singleWidth * (9 / 16);
+      return Container(
+        width: double.infinity,
+        height: singleHeight,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.colors.divider),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: AppImage(
+          imagePath: recipe.descriptionImages[0],
+          fit: BoxFit.cover,
+        ),
+      );
+    }
 
     return SizedBox(
       height: itemHeight,
@@ -395,6 +432,51 @@ class RecipeDetailScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteRecipe(
+    BuildContext context,
+    Recipe recipe,
+    RecipeProvider provider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Xóa công thức?', style: context.textTheme.headlineMedium),
+        content: Text(
+          'Bạn có chắc chắn muốn xóa công thức "${recipe.name}"? Hành động này không thể hoàn tác.',
+          style: context.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // Close dialog
+              await provider.deleteRecipe(recipe.id);
+              if (context.mounted) {
+                Navigator.pop(context); // Close detail screen
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã xóa công thức thành công'),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.colors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Xóa'),
+          ),
+        ],
       ),
     );
   }

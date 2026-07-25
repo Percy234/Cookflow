@@ -567,10 +567,11 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
               return TableRow(
                 decoration: BoxDecoration(color: tableCellBg),
                 children: cells.map<Widget>((cellText) {
+                  final String displayText = cellText.toString().trim().isEmpty ? 'Trống' : cellText.toString();
                   return Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Text(
-                      cellText.toString(),
+                      displayText,
                       style: tableCellTextStyle,
                       textAlign: TextAlign.center,
                     ),

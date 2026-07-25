@@ -861,26 +861,6 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
       } catch (_) {
         block.content = jsonEncode([{"text": "Nội dung mục..."}]);
       }
-    } else if (block.type == BlockType.table) {
-      try {
-        final rows = jsonDecode(block.content) as List<dynamic>;
-        bool updated = false;
-        for (var row in rows) {
-          if (row is List) {
-            for (int i = 0; i < row.length; i++) {
-              if (row[i].toString().trim().isEmpty) {
-                row[i] = 'Trống';
-                updated = true;
-              }
-            }
-          }
-        }
-        if (updated) {
-          block.content = jsonEncode(rows);
-        }
-      } catch (_) {
-        block.content = jsonEncode([["Trống", "Trống"], ["Trống", "Trống"]]);
-      }
     } else if (block.type == BlockType.column) {
       try {
         final data = jsonDecode(block.content) as Map<String, dynamic>;
@@ -1832,29 +1812,38 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                           bottom: rIdx < rows.length - 1 ? BorderSide(color: context.colors.divider) : BorderSide.none,
                         ),
                       ),
-                      child: TextFormField(
-                        initialValue: colEntry.value,
-                        onTap: () {
-                          setState(() {
-                            _focusedStyleBlock = block;
-                            _onFocusedStyleBlockChanged = () {
-                              if (onContentChanged != null) {
-                                onContentChanged();
-                              } else {
-                                setState(() {});
-                              }
-                            };
-                          });
-                        },
-                        onChanged: (val) {
-                          cols[cIdx] = val;
-                          block.content = jsonEncode(rows);
-                          onContentChanged?.call();
-                        },
-                        style: style,
-                        textAlign: align,
-                        decoration: const InputDecoration(border: InputBorder.none, filled: false, contentPadding: EdgeInsets.symmetric(vertical: 8)),
-                      ),
+                      child: _isPreviewMode
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                colEntry.value.toString().trim().isEmpty ? 'Trống' : colEntry.value.toString(),
+                                style: style,
+                                textAlign: align,
+                              ),
+                            )
+                          : TextFormField(
+                              initialValue: colEntry.value,
+                              onTap: () {
+                                setState(() {
+                                  _focusedStyleBlock = block;
+                                  _onFocusedStyleBlockChanged = () {
+                                    if (onContentChanged != null) {
+                                      onContentChanged();
+                                    } else {
+                                      setState(() {});
+                                    }
+                                  };
+                                });
+                              },
+                              onChanged: (val) {
+                                cols[cIdx] = val;
+                                block.content = jsonEncode(rows);
+                                onContentChanged?.call();
+                              },
+                              style: style,
+                              textAlign: align,
+                              decoration: const InputDecoration(border: InputBorder.none, filled: false, contentPadding: EdgeInsets.symmetric(vertical: 8)),
+                            ),
                     ),
                   );
                 }).toList(),

@@ -28,6 +28,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   List<String> _descriptionImages = [];
   int _selectedDescriptionImageIndex = 0;
   bool _isSaving = false;
+  bool _showDescImagesError = false;
 
   bool get _isEditing => widget.recipe != null;
 
@@ -73,13 +74,17 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       setState(() {
         _descriptionImages.addAll(pickedFiles.map((e) => e.path));
         _selectedDescriptionImageIndex = _descriptionImages.length - pickedFiles.length; // Select the first newly added image
+        _showDescImagesError = false;
       });
     }
   }
 
   Future<void> _saveAndContinue() async {
     final formValid = _formKey.currentState!.validate();
-    if (!formValid) return;
+    if (_descriptionImages.isEmpty) {
+      setState(() => _showDescImagesError = true);
+    }
+    if (!formValid || _descriptionImages.isEmpty) return;
     setState(() => _isSaving = true);
 
     Recipe recipeToEdit;
@@ -393,6 +398,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               height: 220,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
+                border: _showDescImagesError
+                    ? Border.all(color: context.colors.error, width: 2)
+                    : null,
               ),
               clipBehavior: Clip.antiAlias,
               child: _descriptionImages.isNotEmpty
@@ -414,6 +422,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                         _selectedDescriptionImageIndex = _selectedDescriptionImageIndex.clamp(0, _descriptionImages.length - 1);
                       } else {
                         _selectedDescriptionImageIndex = 0;
+                        _showDescImagesError = true;
                       }
                     });
                   },
@@ -429,6 +438,17 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
               ),
           ],
         ),
+        if (_showDescImagesError)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+            child: Text(
+              'Vui lòng chọn ít nhất một ảnh mô tả',
+              style: context.textTheme.bodyMedium!.copyWith(
+                color: context.colors.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
         const SizedBox(height: 12),
         // Horizontal list of thumbnails
         SizedBox(
