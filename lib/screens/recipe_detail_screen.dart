@@ -41,19 +41,81 @@ class RecipeDetailScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildRecipeName(context, recipe),
-                      const SizedBox(height: 12),
-                      if (recipe.description.isNotEmpty)
+                      // Header Row
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // App Icon style image
+                          Container(
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: context.colors.divider),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: AppImage(
+                              imagePath: recipe.imagePath,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Name and Category
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  recipe.name,
+                                  style: context.textTheme.displayLarge!.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (recipe.category != null && recipe.category!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    recipe.category!,
+                                    style: context.textTheme.titleMedium!.copyWith(
+                                      color: context.colors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Stats Row
+                      _buildPlayStoreStats(context, recipe, steps),
+                      const SizedBox(height: 32),
+
+                      if (recipe.descriptionImages.isNotEmpty) ...[
+                        _buildDescriptionImages(context, recipe),
+                        const SizedBox(height: 24),
+                      ],
+
+                      if (recipe.description.isNotEmpty) ...[
+                        Text('Về món ăn này', style: context.textTheme.headlineSmall),
+                        const SizedBox(height: 8),
                         _buildDescription(context, recipe),
-                      const SizedBox(height: 20),
-                      _buildStatsRow(context, recipe, steps),
+                      ],
+
                       if (recipe.additionalInfo != null &&
                           recipe.additionalInfo!.isNotEmpty) ...[
                         const SizedBox(height: 24),
                         _buildAdditionalInfo(context, recipe),
                       ],
-                      const SizedBox(height: 28),
-                      _buildWorkflowSection(context, recipe, steps, provider),
+                      
                       const SizedBox(height: 100),
                     ],
                   ),
@@ -73,62 +135,73 @@ class RecipeDetailScreen extends StatelessWidget {
     RecipeProvider provider,
   ) {
     return SliverAppBar(
-      expandedHeight: recipe.imagePath != null ? 260 : 0,
       pinned: true,
       backgroundColor: context.colors.background,
-      actions: const [],
-      flexibleSpace: recipe.imagePath != null
-          ? FlexibleSpaceBar(
-              background: Hero(
-                tag: 'recipe-${recipe.id}',
-                child: Stack(
-                  fit: StackFit.expand,
+      actions: [
+        PopupMenuButton<int>(
+          icon: const Icon(Icons.settings_rounded),
+          tooltip: 'Tùy chọn chỉnh sửa',
+          onSelected: (value) {
+            if (value == 0) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => RecipeFormScreen(recipe: recipe)),
+              );
+            } else if (value == 1) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => RecipeEditorScreen(recipe: recipe)),
+              );
+            } else if (value == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RecipeFlowScreen(
+                    recipe: recipe,
+                    pages: recipe.pages!,
+                  ),
+                ),
+              );
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 0,
+              child: Row(
+                children: [
+                  Icon(Icons.edit_rounded, size: 20, color: context.colors.primary),
+                  const SizedBox(width: 12),
+                  const Text('Chỉnh sửa thông tin'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 1,
+              child: Row(
+                children: [
+                  Icon(Icons.tune_rounded, size: 20, color: context.colors.primary),
+                  const SizedBox(width: 12),
+                  const Text('Quản lý quy trình'),
+                ],
+              ),
+            ),
+            if (recipe.pages != null && recipe.pages!.length > 1)
+              PopupMenuItem(
+                value: 2,
+                child: Row(
                   children: [
-                    AppImage(
-                      imagePath: recipe.imagePath,
-                      fit: BoxFit.cover,
-                      placeholder: _imagePlaceholder(context),
-                    ),
-                    // Gradient overlay
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            context.colors.background,
-                          ],
-                        ),
-                      ),
-                    ),
+                    Icon(Icons.account_tree_rounded, size: 20, color: context.colors.primary),
+                    const SizedBox(width: 12),
+                    const Text('Nối quy trình (Flow)'),
                   ],
                 ),
               ),
-            )
-          : null,
-    );
-  }
-
-  Widget _imagePlaceholder(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.colors.primary.withValues(alpha: 0.3),
-            context.colors.primaryDark.withValues(alpha: 0.5),
           ],
         ),
-      ),
-      child: Center(
-        child: Icon(Icons.restaurant_rounded, size: 80, color: context.colors.primary),
-      ),
+      ],
     );
   }
 
-  Widget _buildRecipeName(BuildContext context, Recipe recipe) {
-    return Text(recipe.name, style: context.textTheme.displayLarge);
-  }
 
   Widget _buildDescription(BuildContext context, Recipe recipe) {
     return Text(
@@ -137,72 +210,81 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsRow(BuildContext context, Recipe recipe, List<StepModel> steps) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 8,
-      children: [
-        _statChip(
-          context: context,
-          icon: Icons.format_list_numbered_rounded,
-          value: '${steps.length}',
-          label: 'bước',
-          color: context.colors.primary,
-        ),
-        if (steps.any((s) => s.isTimerStep))
-          _statChip(
-            context: context,
-            icon: Icons.timer_rounded,
-            value: '${steps.where((s) => s.isTimerStep).length}',
-            label: 'hẹn giờ',
-            color: context.colors.warning,
-          ),
-        if (recipe.pages != null && recipe.pages!.length > 1)
-          _statChip(
-            context: context,
-            icon: Icons.account_tree_rounded,
-            value: '${recipe.pages!.length}',
-            label: 'giai đoạn',
-            color: context.colors.info,
-          ),
-      ],
-    );
-  }
+  Widget _buildDescriptionImages(BuildContext context, Recipe recipe) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = screenWidth * 0.8;
+    final itemHeight = itemWidth * (9 / 16);
 
-  Widget _statChip({
-    required BuildContext context,
-    required IconData icon,
-    required String value,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: value,
-                  style: context.textTheme.labelLarge!.copyWith(color: color),
-                ),
-                TextSpan(
-                  text: ' $label',
-                  style: context.textTheme.bodySmall!.copyWith(color: color),
+    return SizedBox(
+      height: itemHeight,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        clipBehavior: Clip.none,
+        itemCount: recipe.descriptionImages.length,
+        itemBuilder: (context, index) {
+          return Container(
+            width: itemWidth,
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.colors.divider),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-          ),
+            clipBehavior: Clip.antiAlias,
+            child: AppImage(
+              imagePath: recipe.descriptionImages[index],
+              fit: BoxFit.cover,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlayStoreStats(BuildContext context, Recipe recipe, List<StepModel> steps) {
+    String diffText = 'Dễ';
+    if (recipe.difficulty == 1) diffText = 'Trung bình';
+    else if (recipe.difficulty == 2) diffText = 'Khó';
+
+    return IntrinsicHeight(
+      child: Row(
+        children: [
+          Expanded(child: _buildPlayStoreStatItem(context, diffText, 'Độ khó')),
+          VerticalDivider(color: context.colors.divider, thickness: 1, width: 1),
+          Expanded(child: _buildPlayStoreStatItem(context, recipe.estimatedTime ?? '--', 'Thời gian')),
+          VerticalDivider(color: context.colors.divider, thickness: 1, width: 1),
+          Expanded(child: _buildPlayStoreStatItem(context, '${steps.length}', 'Số bước')),
         ],
       ),
+    );
+  }
+
+  Widget _buildPlayStoreStatItem(BuildContext context, String value, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: context.textTheme.bodySmall!.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: context.textTheme.titleMedium!.copyWith(
+            fontWeight: FontWeight.bold,
+            color: context.colors.textPrimary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -271,178 +353,6 @@ class RecipeDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWorkflowSection(
-    BuildContext context,
-    Recipe recipe,
-    List<StepModel> steps,
-    RecipeProvider provider,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text('Quy trình thực hiện', style: context.textTheme.headlineLarge),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (recipe.pages != null && recipe.pages!.length > 1) ...[
-                  IconButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => RecipeFlowScreen(
-                          recipe: recipe,
-                          pages: recipe.pages!,
-                        ),
-                      ),
-                    ),
-                    icon: Icon(
-                      Icons.account_tree_rounded,
-                      size: 20,
-                      color: context.colors.primary,
-                    ),
-                    tooltip: 'Nối quy trình (Flow)',
-                    style: IconButton.styleFrom(
-                      backgroundColor: context.colors.primary.withOpacity(0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                IconButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RecipeEditorScreen(recipe: recipe),
-                    ),
-                  ),
-                  icon: Icon(
-                    Icons.tune_rounded,
-                    size: 20,
-                    color: context.colors.primary,
-                  ),
-                  tooltip: 'Quản lý quy trình',
-                  style: IconButton.styleFrom(
-                    backgroundColor: context.colors.primary.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RecipeFormScreen(recipe: recipe),
-                    ),
-                  ),
-                  icon: Icon(
-                    Icons.edit_rounded,
-                    size: 20,
-                    color: context.colors.primary,
-                  ),
-                  tooltip: 'Chỉnh sửa thông tin',
-                  style: IconButton.styleFrom(
-                    backgroundColor: context.colors.primary.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (steps.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: context.colors.surfaceElevated,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: context.colors.divider),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.add_circle_outline_rounded,
-                    color: context.colors.textHint),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Chưa có bước nào. Nhấn "Quản lý" để thêm bước.',
-                    style: context.textTheme.bodyMedium!.copyWith(
-                      color: context.colors.textHint,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          ...steps.asMap().entries.map(
-                (entry) => _buildStepPreviewTile(context, entry.key, entry.value),
-              ),
-      ],
-    );
-  }
-
-  Widget _buildStepPreviewTile(BuildContext context, int index, StepModel step) {
-    final isTimer = step.isTimerStep;
-    String displayName = step.name;
-    if (RegExp(r'^(Trang|Bước)\s+\d+$').hasMatch(displayName)) {
-      displayName = 'Bước ${index + 1}';
-    }
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: context.colors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isTimer ? context.colors.primary.withValues(alpha: 0.25) : context.colors.divider,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: isTimer
-                  ? context.colors.primary.withValues(alpha: 0.15)
-                  : context.colors.surfaceElevated,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '${index + 1}',
-                style: context.textTheme.labelLarge!.copyWith(
-                  color: isTimer ? context.colors.primary : context.colors.textSecondary,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(displayName, style: context.textTheme.bodyMedium),
-          ),
-          Icon(
-            isTimer ? Icons.timer_rounded : Icons.check_circle_outline_rounded,
-            size: 16,
-            color: isTimer ? context.colors.primary : context.colors.textHint,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomBar(
     BuildContext context,
     Recipe recipe,
@@ -458,7 +368,7 @@ class RecipeDetailScreen extends StatelessWidget {
       ),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: ElevatedButton(
           onPressed: steps.isEmpty
               ? null
               : () => Navigator.push(
@@ -470,15 +380,19 @@ class RecipeDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: Text(
-            steps.isEmpty ? 'Thêm bước để bắt đầu' : 'Bắt đầu nấu',
-            style: context.textTheme.labelLarge!.copyWith(color: Colors.white),
-          ),
           style: ElevatedButton.styleFrom(
+            backgroundColor: context.colors.primary,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor:
-                steps.isEmpty ? context.colors.surfaceElevated : context.colors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+          child: Text(
+            'Bắt đầu nấu',
+            style: context.textTheme.titleMedium!.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),

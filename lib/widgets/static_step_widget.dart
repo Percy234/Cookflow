@@ -72,36 +72,45 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Step image
-            if (widget.step.imagePath != null &&
-                widget.step.imagePath!.isNotEmpty)
-              _buildStepImage(),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Step image
+                    if (widget.step.imagePath != null &&
+                        widget.step.imagePath!.isNotEmpty) ...[
+                      _buildStepImage(),
+                      const SizedBox(height: 24),
+                    ],
 
-            const SizedBox(height: 24),
+                    // Instruction
+                    if (widget.step.instruction.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: context.colors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: context.colors.divider),
+                        ),
+                        child: Text(
+                          widget.step.instruction,
+                          style: context.textTheme.bodyLarge,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
-            // Instruction
-            if (widget.step.instruction.isNotEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: context.colors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.colors.divider),
-                ),
-                child: Text(
-                  widget.step.instruction,
-                  style: context.textTheme.bodyLarge,
+                    // Blocks
+                    if (widget.step.blocks.isNotEmpty)
+                      ...widget.step.blocks.map((b) => StepBlockWidget(block: b)),
+                  ],
                 ),
               ),
+            ),
 
             const SizedBox(height: 16),
-
-            // Blocks
-            if (widget.step.blocks.isNotEmpty)
-              ...widget.step.blocks.map((b) => StepBlockWidget(block: b)),
-
-            const Spacer(),
 
             // Navigation buttons
             _buildNavButtons(context),
@@ -115,7 +124,7 @@ class _StaticStepWidgetState extends State<StaticStepWidget>
     return AppImage(
       imagePath: widget.step.imagePath,
       width: double.infinity,
-      height: 220,
+      height: 300,
       fit: BoxFit.cover,
       borderRadius: BorderRadius.circular(16),
       placeholder: const SizedBox.shrink(),

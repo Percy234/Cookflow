@@ -113,29 +113,38 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Step image
-            if (widget.step.imagePath != null &&
-                widget.step.imagePath!.isNotEmpty)
-              _buildStepImage(),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Step image
+                    if (widget.step.imagePath != null &&
+                        widget.step.imagePath!.isNotEmpty) ...[
+                      _buildStepImage(),
+                      const SizedBox(height: 20),
+                    ],
 
-            const SizedBox(height: 20),
+                    // Instruction
+                    if (widget.step.instruction.isNotEmpty) ...[
+                      Text(
+                        widget.step.instruction,
+                        style: context.textTheme.bodyMedium!.copyWith(
+                          color: context.colors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
-            // Instruction
-            if (widget.step.instruction.isNotEmpty)
-              Text(
-                widget.step.instruction,
-                style: context.textTheme.bodyMedium!.copyWith(
-                  color: context.colors.textSecondary,
+                    // Blocks
+                    if (widget.step.blocks.isNotEmpty)
+                      ...widget.step.blocks.map((b) => StepBlockWidget(block: b)),
+                  ],
                 ),
               ),
+            ),
 
             const SizedBox(height: 16),
-
-            // Blocks
-            if (widget.step.blocks.isNotEmpty)
-              ...widget.step.blocks.map((b) => StepBlockWidget(block: b)),
-
-            const Spacer(),
 
             // ─── Smart single timer button ───
             _buildSmartTimerButton(context, timer),
@@ -167,7 +176,7 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     return AppImage(
       imagePath: widget.step.imagePath,
       width: double.infinity,
-      height: 180,
+      height: 300,
       fit: BoxFit.cover,
       borderRadius: BorderRadius.circular(16),
       placeholder: const SizedBox.shrink(),

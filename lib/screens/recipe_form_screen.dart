@@ -22,9 +22,11 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   late TextEditingController _nameController;
   late TextEditingController _descController;
   String? _imagePath;
-  bool _imageError = false; // true khi người dùng cố lưu mà chưa chọn ảnh
   int _difficulty = 0;
   String? _estimatedTime;
+  String? _category;
+  List<String> _descriptionImages = [];
+  int _selectedDescriptionImageIndex = 0;
   bool _isSaving = false;
 
   bool get _isEditing => widget.recipe != null;
@@ -38,6 +40,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     _imagePath = r?.imagePath;
     _difficulty = r?.difficulty ?? 0;
     _estimatedTime = r?.estimatedTime;
+    _category = r?.category;
+    _descriptionImages = r?.descriptionImages != null ? List.from(r!.descriptionImages) : [];
   }
 
   @override
@@ -59,12 +63,23 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     }
   }
 
+  Future<void> _pickDescriptionImages() async {
+    final picker = ImagePicker();
+    final pickedFiles = await picker.pickMultiImage(
+      imageQuality: 85,
+      maxWidth: 1200,
+    );
+    if (pickedFiles.isNotEmpty) {
+      setState(() {
+        _descriptionImages.addAll(pickedFiles.map((e) => e.path));
+        _selectedDescriptionImageIndex = _descriptionImages.length - pickedFiles.length; // Select the first newly added image
+      });
+    }
+  }
+
   Future<void> _saveAndContinue() async {
     final formValid = _formKey.currentState!.validate();
-    // Validate ảnh bắt buộc
-    final hasImage = _imagePath != null && _imagePath!.isNotEmpty;
-    setState(() => _imageError = !hasImage);
-    if (!formValid || !hasImage) return;
+    if (!formValid) return;
     setState(() => _isSaving = true);
 
     Recipe recipeToEdit;
@@ -77,6 +92,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         clearImage: _imagePath == null,
         difficulty: _difficulty,
         estimatedTime: _estimatedTime,
+        category: _category,
+        descriptionImages: _descriptionImages,
       );
     } else {
       recipeToEdit = Recipe(
@@ -86,6 +103,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         imagePath: _imagePath,
         difficulty: _difficulty,
         estimatedTime: _estimatedTime,
+        category: _category,
+        descriptionImages: _descriptionImages,
       );
     }
 
@@ -116,33 +135,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            // Image picker (bắt buộc *)
-            Row(
-              children: [
-                Text('Ảnh món ăn', style: context.textTheme.headlineSmall),
-                const SizedBox(width: 4),
-                Text('*', style: context.textTheme.headlineSmall!.copyWith(color: context.colors.error)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _buildImagePicker(),
-            if (_imageError) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.error_outline_rounded, size: 14, color: context.colors.error),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Vui lòng chọn ảnh đại diện cho món ăn',
-                    style: context.textTheme.bodySmall!.copyWith(color: context.colors.error),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 32),
-
             // Name
-            Text('Tên món ăn *', style: context.textTheme.headlineSmall),
+            Text('Tên món ăn', style: context.textTheme.headlineSmall),
             const SizedBox(height: 8),
             TextFormField(
               controller: _nameController,
@@ -162,8 +156,23 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             ),
             const SizedBox(height: 24),
 
+            // Image picker
+            Text('Ảnh món ăn', style: context.textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _buildImagePicker(),
+            ),
+            const SizedBox(height: 32),
+
+            // Category
+            Text('Loại món ăn', style: context.textTheme.headlineSmall),
+            const SizedBox(height: 12),
+            _buildCategorySelector(),
+            const SizedBox(height: 24),
+
             // Difficulty
-            Text('Mức độ khó', style: context.textTheme.headlineSmall),
+            Text('Độ khó', style: context.textTheme.headlineSmall),
             const SizedBox(height: 12),
             _buildDifficultySelector(),
             const SizedBox(height: 24),
@@ -173,6 +182,12 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             const SizedBox(height: 12),
             _buildEstimatedTimeSelector(),
             const SizedBox(height: 24),
+
+            // Description images
+            Text('Ảnh mô tả', style: context.textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            _buildDescriptionImagesSection(),
+            const SizedBox(height: 32),
 
             // Description
             Text('Mô tả', style: context.textTheme.headlineSmall),
@@ -219,31 +234,15 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
   }
 
   Widget _buildImagePicker() {
-    final borderColor = _imageError
-        ? context.colors.error
-        : _imagePath != null
-            ? context.colors.primary
-            : context.colors.divider;
-    final borderWidth = (_imageError || _imagePath != null) ? 1.5 : 1.0;
-
     return GestureDetector(
-      onTap: () {
-        _pickImage();
-        // Xoá lỗi khi người dùng nhấn vào vùng chọn ảnh
-        if (_imageError) setState(() => _imageError = false);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      onTap: _pickImage,
+      child: Container(
         height: 220,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: _imageError
-              ? context.colors.error.withValues(alpha: 0.04)
-              : context.colors.surfaceElevated,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: borderWidth),
-        ),
+        width: 220,
         clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: _imagePath != null
             ? Stack(
                 fit: StackFit.expand,
@@ -266,50 +265,14 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
                   ),
                 ],
               )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _imageError
-                          ? context.colors.error.withValues(alpha: 0.1)
-                          : context.colors.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _imageError
-                          ? Icons.broken_image_outlined
-                          : Icons.add_photo_alternate_rounded,
-                      size: 40,
-                      color: _imageError ? context.colors.error : context.colors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _imageError ? 'Bắt buộc phải chọn ảnh' : 'Thêm ảnh món ăn',
-                    style: context.textTheme.labelLarge!.copyWith(
-                      color: _imageError ? context.colors.error : context.colors.textSecondary,
-                      fontWeight: _imageError ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                  if (_imageError) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Nhấn để chọn ảnh từ thư viện',
-                      style: context.textTheme.bodySmall!.copyWith(
-                        color: context.colors.error.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+            : const AppImagePlaceholder(text: 'Chưa chọn ảnh món ăn'),
       ),
     );
   }
 
   Widget _buildDifficultySelector() {
     return SegmentedButton<int>(
+      showSelectedIcon: false,
       segments: const [
         ButtonSegment(
           value: 0,
@@ -383,6 +346,144 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           }).toList(),
         );
       },
+    );
+  }
+
+  Widget _buildCategorySelector() {
+    final categories = [
+      'Chiên', 'Xào', 'Luộc', 'Hấp', 'Hầm', 'Kho', 'Nướng', 'Nấu', 'Khác'
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: categories.map((cat) {
+        final isSelected = _category == cat;
+        return ChoiceChip(
+          label: Text(cat),
+          showCheckmark: false,
+          selected: isSelected,
+          onSelected: (selected) {
+            setState(() {
+              _category = selected ? cat : null;
+            });
+          },
+          selectedColor: context.colors.primary.withValues(alpha: 0.2),
+          backgroundColor: context.colors.surfaceElevated,
+          labelStyle: context.textTheme.bodyMedium!.copyWith(
+            color: isSelected ? context.colors.primary : context.colors.textPrimary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+          side: isSelected 
+              ? BorderSide(color: context.colors.primary) 
+              : BorderSide(color: context.colors.divider),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDescriptionImagesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Large image preview
+        Stack(
+          children: [
+            Container(
+              width: double.infinity,
+              height: 220,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _descriptionImages.isNotEmpty
+                  ? AppImage(
+                      imagePath: _descriptionImages[_selectedDescriptionImageIndex],
+                      fit: BoxFit.cover,
+                    )
+                  : const AppImagePlaceholder(text: 'Chưa có ảnh mô tả'),
+            ),
+            if (_descriptionImages.isNotEmpty)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _descriptionImages.removeAt(_selectedDescriptionImageIndex);
+                      if (_descriptionImages.isNotEmpty) {
+                        _selectedDescriptionImageIndex = _selectedDescriptionImageIndex.clamp(0, _descriptionImages.length - 1);
+                      } else {
+                        _selectedDescriptionImageIndex = 0;
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, size: 20, color: Colors.white),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Horizontal list of thumbnails
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _descriptionImages.length + 1,
+            itemBuilder: (context, index) {
+              if (index == _descriptionImages.length) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return GestureDetector(
+                  onTap: _pickDescriptionImages,
+                  child: Container(
+                    width: 80,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF2F2F2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.add_photo_alternate_rounded,
+                          size: 24, color: isDark ? Colors.grey[600] : Colors.grey[450]),
+                    ),
+                  ),
+                );
+              }
+              final path = _descriptionImages[index];
+              final isSelected = index == _selectedDescriptionImageIndex;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedDescriptionImageIndex = index),
+                child: Container(
+                  width: 80,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? context.colors.primary : context.colors.divider,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: AppImage(
+                    imagePath: path,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -32,6 +32,7 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
   int _selectedPageIndex = 0;
   List<RecipePage> _pages = [RecipePage(id: const Uuid().v4(), name: 'Trang 1')];
   final Map<String, List<StepBlock>> _pageBlocks = {};
+  final Map<String, int> _selectedImageIndices = {};
 
   List<StepBlock> get _blocks {
     final pageId = _pages[_selectedPageIndex].id;
@@ -399,22 +400,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                       icon: const Icon(Icons.check_circle_outline, size: 20),
                       label: const Text('Hoàn thành', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       onPressed: () async {
-                        // VALIDATE: Each page must have at least one valid data block
-                        for (int i = 0; i < _pages.length; i++) {
-                          final page = _pages[i];
+                        // Auto-fill empty blocks with their placeholder (except spacer)
+                        for (final page in _pages) {
                           final blocks = _pageBlocks[page.id] ?? [];
-                          final hasData = blocks.any((b) => _hasData(b));
-                          if (!hasData) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Trang "${page.name}" chưa có nội dung. Vui lòng thêm dữ liệu hoặc xóa trang!'),
-                                backgroundColor: context.colors.error,
-                              ),
-                            );
-                            setState(() {
-                              _selectedPageIndex = i;
-                            });
-                            return;
+                          for (final block in blocks) {
+                            _autoFillBlockPlaceholders(block);
                           }
                         }
 
@@ -793,6 +783,179 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     }
   }
 
+  void _autoFillBlockPlaceholders(StepBlock block) {
+    if (block.type == BlockType.spacer) {
+      return;
+    }
+
+    if (block.type == BlockType.heading) {
+      if (block.content.trim().isEmpty) {
+        block.content = 'Tiêu đề...';
+      }
+    } else if (block.type == BlockType.text) {
+      if (block.content.trim().isEmpty) {
+        block.content = 'Nội dung...';
+      }
+    } else if (block.type == BlockType.checkbox) {
+      if (block.content.trim().isEmpty) {
+        block.content = 'Việc cần làm...';
+      }
+    } else if (block.type == BlockType.image) {
+      if (block.content.trim().isEmpty) {
+        block.content = 'placeholder';
+      }
+    } else if (block.type == BlockType.images) {
+      try {
+        final list = jsonDecode(block.content) as List<dynamic>;
+        if (list.isEmpty) {
+          block.content = jsonEncode(['placeholder']);
+        }
+      } catch (_) {
+        block.content = jsonEncode(['placeholder']);
+      }
+    } else if (block.type == BlockType.checklist) {
+      try {
+        final items = jsonDecode(block.content) as List<dynamic>;
+        bool updated = false;
+        if (items.isEmpty) {
+          items.add({"text": "Mục danh sách...", "checked": false});
+          updated = true;
+        } else {
+          for (var item in items) {
+            if (item is Map) {
+              final text = item['text'] as String? ?? '';
+              if (text.trim().isEmpty) {
+                item['text'] = 'Mục danh sách...';
+                updated = true;
+              }
+            }
+          }
+        }
+        if (updated || items.isEmpty) {
+          block.content = jsonEncode(items);
+        }
+      } catch (_) {
+        block.content = jsonEncode([{"text": "Mục danh sách...", "checked": false}]);
+      }
+    } else if (block.type == BlockType.ordered) {
+      try {
+        final items = jsonDecode(block.content) as List<dynamic>;
+        bool updated = false;
+        if (items.isEmpty) {
+          items.add({"text": "Nội dung mục..."});
+          updated = true;
+        } else {
+          for (var item in items) {
+            if (item is Map) {
+              final text = item['text'] as String? ?? '';
+              if (text.trim().isEmpty) {
+                item['text'] = 'Nội dung mục...';
+                updated = true;
+              }
+            }
+          }
+        }
+        if (updated || items.isEmpty) {
+          block.content = jsonEncode(items);
+        }
+      } catch (_) {
+        block.content = jsonEncode([{"text": "Nội dung mục..."}]);
+      }
+    } else if (block.type == BlockType.table) {
+      try {
+        final rows = jsonDecode(block.content) as List<dynamic>;
+        bool updated = false;
+        for (var row in rows) {
+          if (row is List) {
+            for (int i = 0; i < row.length; i++) {
+              if (row[i].toString().trim().isEmpty) {
+                row[i] = 'Trống';
+                updated = true;
+              }
+            }
+          }
+        }
+        if (updated) {
+          block.content = jsonEncode(rows);
+        }
+      } catch (_) {
+        block.content = jsonEncode([["Trống", "Trống"], ["Trống", "Trống"]]);
+      }
+    } else if (block.type == BlockType.column) {
+      try {
+        final data = jsonDecode(block.content) as Map<String, dynamic>;
+        final cols = data['cols'] as List<dynamic>;
+        for (var col in cols) {
+          if (col is Map) {
+            final subBlocks = col['blocks'] as List<dynamic>;
+            for (var sb in subBlocks) {
+              if (sb is Map) {
+                final typeStr = sb['type'] ?? 'text';
+                final parsedType = BlockType.values.firstWhere((e) => e.name == typeStr, orElse: () => BlockType.text);
+                final subBlockObj = StepBlock(
+                  id: sb['id'] ?? '',
+                  type: parsedType,
+                  content: sb['content'] ?? '',
+                );
+                if (subBlockObj.content.trim().isEmpty) {
+                  if (subBlockObj.type == BlockType.image) {
+                    subBlockObj.content = 'placeholder';
+                  } else if (subBlockObj.type == BlockType.images) {
+                    subBlockObj.content = jsonEncode(['placeholder']);
+                  } else if (subBlockObj.type == BlockType.spacer) {
+                    // spacer stays empty
+                  } else {
+                    subBlockObj.content = 'Trống';
+                  }
+                } else {
+                  _autoFillBlockPlaceholders(subBlockObj);
+                }
+                sb['content'] = subBlockObj.content;
+              }
+            }
+          }
+        }
+        block.content = jsonEncode(data);
+      } catch (_) {}
+    } else if (block.type == BlockType.row) {
+      try {
+        final data = jsonDecode(block.content) as Map<String, dynamic>;
+        final rows = data['rows'] as List<dynamic>;
+        for (var row in rows) {
+          if (row is Map) {
+            final subBlocks = row['blocks'] as List<dynamic>;
+            for (var sb in subBlocks) {
+              if (sb is Map) {
+                final typeStr = sb['type'] ?? 'text';
+                final parsedType = BlockType.values.firstWhere((e) => e.name == typeStr, orElse: () => BlockType.text);
+                final subBlockObj = StepBlock(
+                  id: sb['id'] ?? '',
+                  type: parsedType,
+                  content: sb['content'] ?? '',
+                );
+                if (subBlockObj.content.trim().isEmpty) {
+                  if (subBlockObj.type == BlockType.image) {
+                    subBlockObj.content = 'placeholder';
+                  } else if (subBlockObj.type == BlockType.images) {
+                    subBlockObj.content = jsonEncode(['placeholder']);
+                  } else if (subBlockObj.type == BlockType.spacer) {
+                    // spacer stays empty
+                  } else {
+                    subBlockObj.content = 'Trống';
+                  }
+                } else {
+                  _autoFillBlockPlaceholders(subBlockObj);
+                }
+                sb['content'] = subBlockObj.content;
+              }
+            }
+          }
+        }
+        block.content = jsonEncode(data);
+      } catch (_) {}
+    }
+  }
+
   void _deletePage(int index) {
     if (_pages.length <= 1) return;
     setState(() {
@@ -971,20 +1134,22 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             ? Alignment.center 
             : (block.textAlign == 'right' ? Alignment.centerRight : Alignment.centerLeft);
             
-        final imageWidget = Container(
-          width: block.width ?? double.infinity,
-          height: block.height ?? 200,
-          decoration: _isPreviewMode ? null : BoxDecoration(
-            border: Border.all(color: context.colors.divider),
-          ),
-          child: block.content.isEmpty
-              ? (_isPreviewMode ? SizedBox.shrink() : Center(child: Icon(Icons.add_photo_alternate_rounded, size: 40, color: context.colors.textHint)))
-              : AppImage(imagePath: block.content, fit: BoxFit.cover, width: block.width ?? double.infinity, height: block.height ?? 200),
-        );
+        final imageWidget = block.content.isEmpty || block.content == 'placeholder'
+            ? AppImagePlaceholder(
+                width: block.width ?? double.infinity,
+                height: block.height ?? 300,
+                text: 'Chưa có hình ảnh',
+              )
+            : AppImage(
+                imagePath: block.content,
+                fit: BoxFit.cover,
+                width: block.width ?? double.infinity,
+                height: block.height ?? 300,
+              );
 
         return GestureDetector(
           onTap: () {
-            if (block.content.isEmpty) {
+            if (block.content.isEmpty || block.content == 'placeholder') {
               _pickSingleImage(block, onContentChanged: onContentChanged);
             }
             setState(() {
@@ -1011,52 +1176,159 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         try {
           paths = jsonDecode(block.content);
         } catch (_) {}
-        
-        final alignment = block.textAlign == 'center' 
-            ? WrapAlignment.center 
-            : (block.textAlign == 'right' ? WrapAlignment.end : WrapAlignment.start);
-            
-        final imagesWidget = Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(8),
-          decoration: _isPreviewMode ? null : BoxDecoration(
-            border: Border.all(color: context.colors.divider),
-          ),
-          child: paths.isEmpty
-              ? (_isPreviewMode ? const SizedBox.shrink() : const SizedBox(
-                  height: 100,
-                  child: Center(child: Text('Nhấn để chọn nhiều ảnh')),
-                ))
-              : Wrap(
-                  alignment: alignment,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: paths.map((p) => SizedBox(
-                    width: block.width ?? 100, height: block.height ?? 100,
-                    child: AppImage(imagePath: p.toString(), fit: BoxFit.cover),
-                  )).toList(),
-                ),
-        );
 
-        return GestureDetector(
-          onTap: () {
-            if (paths.isEmpty) {
-              _pickMultipleImages(block, onContentChanged: onContentChanged);
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        if (paths.isEmpty) {
+          return GestureDetector(
+            onTap: () => _pickMultipleImages(block, onContentChanged: onContentChanged),
+            child: const AppImagePlaceholder(text: 'Chưa có hình ảnh'),
+          );
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final itemHeight = block.height ?? 300;
+            final itemWidth = block.width ?? constraints.maxWidth;
+
+            if (_isPreviewMode) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: SizedBox(
+                  height: itemHeight,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    clipBehavior: Clip.none,
+                    itemCount: paths.length,
+                    itemBuilder: (context, index) {
+                      final path = paths[index].toString();
+                      return Container(
+                        width: itemWidth,
+                        margin: index == paths.length - 1
+                            ? EdgeInsets.zero
+                            : const EdgeInsets.only(right: 16),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: AppImage(
+                            imagePath: path,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
             }
-            setState(() {
-              _focusedStyleBlock = block;
-              _onFocusedStyleBlockChanged = () {
-                if (onContentChanged != null) {
-                  onContentChanged();
-                } else {
-                  setState(() {});
-                }
-              };
-            });
+
+            final selectedIdx = (_selectedImageIndices[block.id] ?? 0).clamp(0, paths.length - 1);
+            if (_selectedImageIndices[block.id] != selectedIdx) {
+              _selectedImageIndices[block.id] = selectedIdx;
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Large image preview
+                Stack(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: itemHeight,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: AppImage(
+                        imagePath: paths[selectedIdx].toString(),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            paths.removeAt(selectedIdx);
+                            block.content = jsonEncode(paths);
+                            if (paths.isNotEmpty) {
+                              _selectedImageIndices[block.id] = selectedIdx.clamp(0, paths.length - 1);
+                            } else {
+                              _selectedImageIndices[block.id] = 0;
+                            }
+                            onContentChanged?.call();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, size: 20, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Horizontal list of thumbnails
+                SizedBox(
+                  height: 80,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: paths.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == paths.length) {
+                        return GestureDetector(
+                          onTap: () => _pickMultipleImages(block, onContentChanged: onContentChanged),
+                          child: Container(
+                            width: 80,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF2F2F2),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(Icons.add_photo_alternate_rounded,
+                                  size: 24, color: isDark ? Colors.grey[600] : Colors.grey[450]),
+                            ),
+                          ),
+                        );
+                      }
+                      final path = paths[index].toString();
+                      final isSelected = index == selectedIdx;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedImageIndices[block.id] = index),
+                        child: Container(
+                          width: 80,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? context.colors.primary : context.colors.divider,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: AppImage(
+                            imagePath: path,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
           },
-          onDoubleTap: () => _pickMultipleImages(block, onContentChanged: onContentChanged),
-          onLongPress: () => _pickMultipleImages(block, onContentChanged: onContentChanged),
-          child: imagesWidget,
         );
 
       case BlockType.checkbox:
@@ -1352,43 +1624,59 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: subBlocks.asMap().entries.map((sbEntry) {
-                      final sbIdx = sbEntry.key;
-                      final sb = Map<String, dynamic>.from(sbEntry.value);
-                      final sbTypeStr = sb['type'] as String? ?? 'text';
-                      
-                      BlockType parsedType = BlockType.values.firstWhere(
-                        (e) => e.name == sbTypeStr,
-                        orElse: () => BlockType.text
-                      );
+                    children: subBlocks.isEmpty
+                        ? (_isPreviewMode
+                            ? [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Text(
+                                    'Trống',
+                                    style: context.textTheme.bodyMedium!.copyWith(
+                                      fontSize: 14.0,
+                                      fontStyle: FontStyle.normal,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                )
+                              ]
+                            : [])
+                        : subBlocks.asMap().entries.map((sbEntry) {
+                            final sbIdx = sbEntry.key;
+                            final sb = Map<String, dynamic>.from(sbEntry.value);
+                            final sbTypeStr = sb['type'] as String? ?? 'text';
+                            
+                            BlockType parsedType = BlockType.values.firstWhere(
+                              (e) => e.name == sbTypeStr,
+                              orElse: () => BlockType.text
+                            );
 
-                      final subBlockObj = StepBlock(
-                        id: sb['id'] ?? const Uuid().v4(),
-                        type: parsedType,
-                        content: sb['content'] ?? '',
-                      );
+                            final subBlockObj = StepBlock(
+                              id: sb['id'] ?? const Uuid().v4(),
+                              type: parsedType,
+                              content: sb['content'] ?? '',
+                            );
 
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: sbIdx < subBlocks.length - 1 ? 8.0 : 0.0),
-                        child: _buildBlockWrapper(
-                          subBlockObj,
-                          sbIdx,
-                          bottomPadding: 0.0,
-                          onDelete: () {
-                            setState(() {
-                              subBlocks.removeAt(sbIdx);
-                              cols[colIdx]['blocks'] = subBlocks;
-                              saveColData();
-                            });
-                          },
-                          onContentChanged: () {
-                            subBlocks[sbIdx]['content'] = subBlockObj.content;
-                            cols[colIdx]['blocks'] = subBlocks;
-                            saveColData();
-                          },
-                        ),
-                      );
-                    }).toList(),
+                            return Padding(
+                              padding: EdgeInsets.only(bottom: sbIdx < subBlocks.length - 1 ? 8.0 : 0.0),
+                              child: _buildBlockWrapper(
+                                subBlockObj,
+                                sbIdx,
+                                bottomPadding: 0.0,
+                                onDelete: () {
+                                  setState(() {
+                                    subBlocks.removeAt(sbIdx);
+                                    cols[colIdx]['blocks'] = subBlocks;
+                                    saveColData();
+                                  });
+                                },
+                                onContentChanged: () {
+                                  subBlocks[sbIdx]['content'] = subBlockObj.content;
+                                  cols[colIdx]['blocks'] = subBlocks;
+                                  saveColData();
+                                },
+                              ),
+                            );
+                          }).toList(),
                   ),
                 ),
               ),
@@ -1455,43 +1743,59 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: subBlocks.asMap().entries.map((sbEntry) {
-                    final sbIdx = sbEntry.key;
-                    final sb = Map<String, dynamic>.from(sbEntry.value);
-                    final sbTypeStr = sb['type'] as String? ?? 'text';
-                    
-                    BlockType parsedType = BlockType.values.firstWhere(
-                      (e) => e.name == sbTypeStr,
-                      orElse: () => BlockType.text
-                    );
+                  children: subBlocks.isEmpty
+                      ? (_isPreviewMode
+                          ? [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Text(
+                                  'Trống',
+                                  style: context.textTheme.bodyMedium!.copyWith(
+                                    fontSize: 14.0,
+                                    fontStyle: FontStyle.normal,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              )
+                            ]
+                          : [])
+                      : subBlocks.asMap().entries.map((sbEntry) {
+                          final sbIdx = sbEntry.key;
+                          final sb = Map<String, dynamic>.from(sbEntry.value);
+                          final sbTypeStr = sb['type'] as String? ?? 'text';
+                          
+                          BlockType parsedType = BlockType.values.firstWhere(
+                            (e) => e.name == sbTypeStr,
+                            orElse: () => BlockType.text
+                          );
 
-                    final subBlockObj = StepBlock(
-                      id: sb['id'] ?? const Uuid().v4(),
-                      type: parsedType,
-                      content: sb['content'] ?? '',
-                    );
+                          final subBlockObj = StepBlock(
+                            id: sb['id'] ?? const Uuid().v4(),
+                            type: parsedType,
+                            content: sb['content'] ?? '',
+                          );
 
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: sbIdx < subBlocks.length - 1 ? 8.0 : 0.0),
-                      child: _buildBlockWrapper(
-                        subBlockObj,
-                        sbIdx,
-                        bottomPadding: 0.0,
-                        onDelete: () {
-                          setState(() {
-                            subBlocks.removeAt(sbIdx);
-                            rows[rowIdx]['blocks'] = subBlocks;
-                            saveRowData();
-                          });
-                        },
-                        onContentChanged: () {
-                          subBlocks[sbIdx]['content'] = subBlockObj.content;
-                          rows[rowIdx]['blocks'] = subBlocks;
-                          saveRowData();
-                        },
-                      ),
-                    );
-                  }).toList(),
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: sbIdx < subBlocks.length - 1 ? 8.0 : 0.0),
+                            child: _buildBlockWrapper(
+                              subBlockObj,
+                              sbIdx,
+                              bottomPadding: 0.0,
+                              onDelete: () {
+                                setState(() {
+                                  subBlocks.removeAt(sbIdx);
+                                  rows[rowIdx]['blocks'] = subBlocks;
+                                  saveRowData();
+                                });
+                              },
+                              onContentChanged: () {
+                                subBlocks[sbIdx]['content'] = subBlockObj.content;
+                                rows[rowIdx]['blocks'] = subBlocks;
+                                saveRowData();
+                              },
+                            ),
+                          );
+                        }).toList(),
                 ),
               ),
             );

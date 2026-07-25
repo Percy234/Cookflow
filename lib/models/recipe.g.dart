@@ -28,13 +28,15 @@ class RecipeAdapter extends TypeAdapter<Recipe> {
       createdAt: fields[7] as DateTime?,
       difficulty: fields[9] == null ? 0 : fields[9] as int,
       estimatedTime: fields[10] as String?,
+      category: fields[11] as String?,
+      descriptionImages: (fields[12] as List?)?.cast<String>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Recipe obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -56,7 +58,11 @@ class RecipeAdapter extends TypeAdapter<Recipe> {
       ..writeByte(9)
       ..write(obj.difficulty)
       ..writeByte(10)
-      ..write(obj.estimatedTime);
+      ..write(obj.estimatedTime)
+      ..writeByte(11)
+      ..write(obj.category)
+      ..writeByte(12)
+      ..write(obj.descriptionImages);
   }
 
   @override

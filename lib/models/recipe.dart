@@ -40,6 +40,12 @@ class Recipe extends HiveObject {
   @HiveField(10)
   String? estimatedTime;
 
+  @HiveField(11)
+  String? category;
+
+  @HiveField(12)
+  List<String> descriptionImages;
+
   Recipe({
     required this.id,
     required this.name,
@@ -52,8 +58,11 @@ class Recipe extends HiveObject {
     DateTime? createdAt,
     this.difficulty = 0,
     this.estimatedTime,
+    this.category,
+    List<String>? descriptionImages,
   })  : ingredients = ingredients ?? [],
         stepIds = stepIds ?? [],
+        descriptionImages = descriptionImages ?? [],
         createdAt = createdAt ?? DateTime.now();
 
   Recipe copyWith({
@@ -68,6 +77,8 @@ class Recipe extends HiveObject {
     bool clearImage = false,
     int? difficulty,
     String? estimatedTime,
+    String? category,
+    List<String>? descriptionImages,
   }) {
     return Recipe(
       id: id ?? this.id,
@@ -81,6 +92,8 @@ class Recipe extends HiveObject {
       createdAt: createdAt,
       difficulty: difficulty ?? this.difficulty,
       estimatedTime: estimatedTime ?? this.estimatedTime,
+      category: category ?? this.category,
+      descriptionImages: descriptionImages ?? List.from(this.descriptionImages),
     );
   }
 }

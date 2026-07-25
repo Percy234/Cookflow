@@ -17,6 +17,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
   // Local state for checkboxes and checklists
   bool _checkboxValue = false;
   List<bool> _checklistValues = [];
+  int _selectedImageIndex = 0;
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
   }
 
   void _initLocalState() {
+    _selectedImageIndex = 0;
     if (widget.block.type == BlockType.checkbox) {
       _checkboxValue = false;
     } else if (widget.block.type == BlockType.checklist) {
@@ -104,35 +106,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
     // For list/checklist/ordered: treat as empty if the decoded list has
     // no items, or every item's text is blank.
     // For all other types: treat as empty when content is blank.
-    if (block.type != BlockType.spacer) {
-      bool isEmpty = false;
 
-      if (block.type == BlockType.checklist ||
-          block.type == BlockType.ordered ||
-          block.type == BlockType.checkbox) {
-        try {
-          final items = jsonDecode(block.content) as List<dynamic>;
-          isEmpty = items.isEmpty ||
-              items.every((item) => (item['text'] as String? ?? '').trim().isEmpty);
-        } catch (_) {
-          isEmpty = block.content.trim().isEmpty;
-        }
-      } else if (block.type == BlockType.image) {
-        // image blocks with no path are hidden
-        isEmpty = block.content.trim().isEmpty;
-      } else if (block.type == BlockType.images) {
-        try {
-          final list = jsonDecode(block.content) as List<dynamic>;
-          isEmpty = list.isEmpty;
-        } catch (_) {
-          isEmpty = true;
-        }
-      } else {
-        isEmpty = block.content.trim().isEmpty;
-      }
-
-      if (isEmpty) return const SizedBox.shrink();
-    }
 
     switch (block.type) {
       case BlockType.heading:
@@ -165,7 +139,22 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
         );
 
       case BlockType.image:
-        if (block.content.isEmpty) return const SizedBox.shrink();
+        if (block.content.isEmpty || block.content == 'placeholder') {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            child: Align(
+              alignment: _getAlignment(),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AppImagePlaceholder(
+                  width: block.width ?? double.infinity,
+                  height: block.height ?? 300,
+                  text: 'Chưa có hình ảnh',
+                ),
+              ),
+            ),
+          );
+        }
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: Align(
@@ -176,7 +165,7 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
                 imagePath: block.content,
                 fit: BoxFit.cover,
                 width: block.width ?? double.infinity,
-                height: block.height,
+                height: block.height ?? 300,
               ),
             ),
           ),
@@ -187,25 +176,43 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
         try {
           paths = jsonDecode(block.content);
         } catch (_) {}
-        if (paths.isEmpty) return const SizedBox.shrink();
-        
+
+        if (paths.isEmpty) {
+          return const AppImagePlaceholder(text: 'Chưa có hình ảnh');
+        }
+
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child: SizedBox(
-            width: double.infinity,
-            child: Wrap(
-              alignment: _getWrapAlignment(),
-              spacing: 8,
-              runSpacing: 8,
-              children: paths.map((p) => ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: block.width ?? 120, 
-                  height: block.height ?? 120,
-                  child: AppImage(imagePath: p.toString(), fit: BoxFit.cover),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = block.width ?? constraints.maxWidth;
+              final itemHeight = block.height ?? 300;
+              return SizedBox(
+                height: itemHeight,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  clipBehavior: Clip.none,
+                  itemCount: paths.length,
+                  itemBuilder: (context, index) {
+                    final path = paths[index].toString();
+                    return Container(
+                      width: itemWidth,
+                      margin: index == paths.length - 1
+                          ? EdgeInsets.zero
+                          : const EdgeInsets.only(right: 16),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: AppImage(
+                          imagePath: path,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              )).toList(),
-            ),
+              );
+            },
           ),
         );
 
@@ -390,11 +397,16 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
         List<dynamic> cols = colData['cols'] ?? [];
         if (cols.isEmpty) return const SizedBox.shrink();
 
+        final isBorderless = block.listStyle == 'borderless';
+        final bgColor = block.color != null ? Color(int.parse(block.color!.replaceFirst('#', '0xFF'))) : null;
+
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: cols.map((colDef) {
+            children: cols.asMap().entries.map((entry) {
+              final colIdx = entry.key;
+              final colDef = entry.value;
               List<dynamic> subBlockData = colDef['blocks'] ?? [];
               List<StepBlock> subBlocks = subBlockData.map((d) {
                 return StepBlock(
@@ -415,11 +427,36 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
               }).toList();
               
               return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: bgColor ?? Colors.transparent,
+                    border: isBorderless
+                        ? Border.all(color: Colors.transparent, width: 0)
+                        : Border(
+                            top: BorderSide(color: context.colors.divider, width: 1),
+                            bottom: BorderSide(color: context.colors.divider, width: 1),
+                            left: colIdx == 0 ? BorderSide(color: context.colors.divider, width: 1) : BorderSide.none,
+                            right: BorderSide(color: context.colors.divider, width: 1),
+                          ),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: subBlocks.map((sb) => StepBlockWidget(block: sb)).toList(),
+                    children: subBlocks.isEmpty
+                        ? [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text(
+                                'Trống',
+                                style: context.textTheme.bodyMedium!.copyWith(
+                                  fontSize: 14.0,
+                                  fontStyle: FontStyle.normal,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            )
+                          ]
+                        : subBlocks.map((sb) => StepBlockWidget(block: sb)).toList(),
                   ),
                 ),
               );
@@ -436,10 +473,15 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
         List<dynamic> rows = rowData['rows'] ?? [];
         if (rows.isEmpty) return const SizedBox.shrink();
 
+        final isBorderless = block.listStyle == 'borderless';
+        final bgColor = block.color != null ? Color(int.parse(block.color!.replaceFirst('#', '0xFF'))) : null;
+
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Column(
-            children: rows.map((rowDef) {
+            children: rows.asMap().entries.map((entry) {
+              final rowIdx = entry.key;
+              final rowDef = entry.value;
               List<dynamic> subBlockData = rowDef['blocks'] ?? [];
               List<StepBlock> subBlocks = subBlockData.map((d) {
                 return StepBlock(
@@ -459,16 +501,41 @@ class _StepBlockWidgetState extends State<StepBlockWidget> {
                 );
               }).toList();
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: bgColor ?? Colors.transparent,
+                  border: isBorderless
+                      ? Border.all(color: Colors.transparent, width: 0)
+                      : Border(
+                          top: rowIdx == 0 ? BorderSide(color: context.colors.divider, width: 1) : BorderSide.none,
+                          bottom: BorderSide(color: context.colors.divider, width: 1),
+                          left: BorderSide(color: context.colors.divider, width: 1),
+                          right: BorderSide(color: context.colors.divider, width: 1),
+                        ),
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: subBlocks.map((sb) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: StepBlockWidget(block: sb),
-                    ),
-                  )).toList(),
+                  children: subBlocks.isEmpty
+                      ? [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              'Trống',
+                              style: context.textTheme.bodyMedium!.copyWith(
+                                fontSize: 14.0,
+                                fontStyle: FontStyle.normal,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          )
+                        ]
+                      : subBlocks.map((sb) => Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: StepBlockWidget(block: sb),
+                          ),
+                        )).toList(),
                 ),
               );
             }).toList(),
