@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/execution_provider.dart';
+import 'providers/favorites_provider.dart';
+import 'providers/history_provider.dart';
 import 'providers/recipe_provider.dart';
 import 'providers/theme_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_shell.dart';
 import 'services/hive_service.dart';
 import 'services/notification_service.dart';
 import 'services/timer_service.dart';
@@ -40,6 +42,8 @@ class CookFlowApp extends StatelessWidget {
         // TimerService is a singleton ChangeNotifier
         ChangeNotifierProvider(create: (_) => TimerService()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()),
+        ChangeNotifierProvider(create: (_) => HistoryProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
@@ -59,7 +63,7 @@ class CookFlowApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-            home: const HomeScreen(),
+            home: const MainShell(),
           );
         },
       ),

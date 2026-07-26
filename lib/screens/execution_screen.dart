@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/step_model.dart';
 import '../providers/execution_provider.dart';
+import '../providers/favorites_provider.dart';
+import '../providers/history_provider.dart';
 import '../services/timer_service.dart';
 import '../widgets/app_theme.dart';
 import '../widgets/static_step_widget.dart';
@@ -28,6 +30,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
   late TimerService _timerService;
   DateTime _startTime = DateTime.now();
   DateTime? _endTime;
+  bool _historyRecorded = false;
 
   @override
   void initState() {
@@ -50,6 +53,13 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
       builder: (context, exec, _) {
         if (exec.isCompleted) {
           _endTime ??= DateTime.now();
+          // Record history once per execution session
+          if (!_historyRecorded) {
+            _historyRecorded = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.read<HistoryProvider>().addEntry(widget.recipeId);
+            });
+          }
           return _buildCompletionScreen(context);
         }
 
@@ -197,18 +207,55 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: context.colors.success.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.emoji_events_rounded,
-                          size: 56,
-                          color: context.colors.primary,
-                        ),
+                      const SizedBox(height: 20),
+                      // Trophy icon + Favorite button row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: context.colors.success.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.emoji_events_rounded,
+                              size: 56,
+                              color: context.colors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Consumer<FavoritesProvider>(
+                            builder: (_, favProvider, __) {
+                              final isFav = favProvider.isFavorite(widget.recipeId);
+                              return GestureDetector(
+                                onTap: () => favProvider.toggleFavorite(widget.recipeId),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  curve: Curves.elasticOut,
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: isFav
+                                        ? Colors.red.withValues(alpha: 0.12)
+                                        : context.colors.surfaceElevated,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isFav
+                                          ? Colors.red.withValues(alpha: 0.4)
+                                          : context.colors.divider,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    isFav ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                                    size: 28,
+                                    color: isFav ? Colors.red : context.colors.textHint,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       Text(
