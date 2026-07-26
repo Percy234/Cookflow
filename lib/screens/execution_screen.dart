@@ -189,205 +189,213 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
       backgroundColor: context.colors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: context.colors.success.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.emoji_events_rounded,
-                  size: 56,
-                  color: context.colors.primary,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Chúc mừng!',
-                style: context.textTheme.headlineLarge!.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: context.colors.textPrimary,
-                  fontSize: 28,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-
-              if (recipe != null)
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.colors.card,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: context.colors.divider),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: AppImage(
-                              imagePath: recipe.imagePath,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Đã hoàn thành:',
-                              style: context.textTheme.bodyMedium!.copyWith(
-                                color: context.colors.textSecondary,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              recipe.name,
-                              style: context.textTheme.titleLarge!.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: context.colors.textPrimary,
-                                fontSize: 32,
-                                height: 1.1,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: [
-                                if (recipe.category != null)
-                                  _buildBadge(
-                                    context: context,
-                                    icon: Icons.restaurant_menu_rounded,
-                                    text: recipe.category!,
-                                  ),
-                                _buildBadge(
-                                  context: context,
-                                  icon: difficultyIcon,
-                                  text: difficultyText,
-                                ),
-                                if (recipe.estimatedTime != null)
-                                  _buildBadge(
-                                    context: context,
-                                    icon: Icons.timer_outlined,
-                                    text: recipe.estimatedTime!,
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              const Spacer(),
-
-              if (_endTime != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: context.colors.card,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: context.colors.divider),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.speed_rounded,
-                            color: context.colors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'TỔNG THỜI GIAN THỰC HIỆN',
-                            style: context.textTheme.labelLarge!.copyWith(
-                              color: context.colors.textSecondary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 16),
-                      Text(
-                        _formatDuration(_endTime!.difference(_startTime)),
-                        style: context.textTheme.displayMedium!.copyWith(
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: context.colors.success.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.emoji_events_rounded,
+                          size: 56,
                           color: context.colors.primary,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Chúc mừng!',
+                        style: context.textTheme.headlineLarge!.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.textPrimary,
+                          fontSize: 28,
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      const SizedBox(height: 20),
+
+                      if (recipe != null)
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: context.colors.card,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: context.colors.divider),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: AppImage(
+                                      imagePath: recipe.imagePath,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Đã hoàn thành:',
+                                      style: context.textTheme.bodyMedium!.copyWith(
+                                        color: context.colors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      recipe.name,
+                                      style: context.textTheme.titleLarge!.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        color: context.colors.textPrimary,
+                                        fontSize: 32,
+                                        height: 1.1,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: [
+                                        if (recipe.category != null)
+                                          _buildBadge(
+                                            context: context,
+                                            icon: Icons.restaurant_menu_rounded,
+                                            text: recipe.category!,
+                                          ),
+                                        _buildBadge(
+                                          context: context,
+                                          icon: difficultyIcon,
+                                          text: difficultyText,
+                                        ),
+                                        if (recipe.estimatedTime != null)
+                                          _buildBadge(
+                                            context: context,
+                                            icon: Icons.timer_outlined,
+                                            text: recipe.estimatedTime!,
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: context.colors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(12),
+
+                      if (_endTime != null)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: context.colors.card,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: context.colors.divider),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.speed_rounded,
+                                    color: context.colors.primary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'TỔNG THỜI GIAN THỰC HIỆN',
+                                    style: context.textTheme.labelLarge!.copyWith(
+                                      color: context.colors.textSecondary,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _formatDuration(_endTime!.difference(_startTime)),
+                                style: context.textTheme.displayMedium!.copyWith(
+                                  color: context.colors.primary,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 32,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: context.colors.surfaceElevated,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.play_circle_outline_rounded, size: 14, color: context.colors.textSecondary),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _formatTime(_startTime),
+                                      style: context.textTheme.bodySmall!.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                      child: Text('•', style: TextStyle(color: context.colors.divider)),
+                                    ),
+                                    Icon(Icons.check_circle_outline_rounded, size: 14, color: context.colors.success),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _formatTime(_endTime!),
+                                      style: context.textTheme.bodySmall!.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.play_circle_outline_rounded, size: 14, color: context.colors.textSecondary),
-                            const SizedBox(width: 6),
-                            Text(
-                              _formatTime(_startTime),
-                              style: context.textTheme.bodySmall!.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text('•', style: TextStyle(color: context.colors.divider)),
-                            ),
-                            Icon(Icons.check_circle_outline_rounded, size: 14, color: context.colors.success),
-                            const SizedBox(width: 6),
-                            Text(
-                              _formatTime(_endTime!),
-                              style: context.textTheme.bodySmall!.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
-              const Spacer(flex: 2),
-
+              ),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(

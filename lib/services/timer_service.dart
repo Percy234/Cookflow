@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'notification_service.dart';
 
 enum TimerStatus { idle, running, paused, completed }
 
@@ -9,12 +10,17 @@ class TimerService extends ChangeNotifier {
   TimerService._internal();
 
   Timer? _timer;
+  String? _currentStepId;
+  String? _currentStepName;
   int _totalSeconds = 0;
   int _secondsRemaining = 0;
   TimerStatus _status = TimerStatus.idle;
   VoidCallback? _onCompleted;
+  bool _notificationSent = false;
 
   // ─── Getters ───────────────────────────────────────────────────
+  String? get currentStepId => _currentStepId;
+  String? get currentStepName => _currentStepName;
   int get secondsRemaining => _secondsRemaining;
   int get totalSeconds => _totalSeconds;
   TimerStatus get status => _status;
@@ -34,22 +40,40 @@ class TimerService extends ChangeNotifier {
 
   // ─── Controls ──────────────────────────────────────────────────
 
-  void init(int durationSeconds, {VoidCallback? onCompleted}) {
+  void init(String stepId, String stepName, int durationSeconds, {VoidCallback? onCompleted}) {
+    if (_currentStepId == stepId) {
+      // Nếu đã khởi tạo/đang chạy cho chính bước này, không reset bộ đếm giờ
+      _onCompleted = onCompleted;
+      return;
+    }
     _cancelTimer();
+    _currentStepId = stepId;
+    _currentStepName = stepName;
     _totalSeconds = durationSeconds;
     _secondsRemaining = durationSeconds;
     _status = TimerStatus.idle;
     _onCompleted = onCompleted;
+    _notificationSent = false;
     notifyListeners();
   }
 
 
-  void start(int durationSeconds, {VoidCallback? onCompleted}) {
+  void start(String stepId, String stepName, int durationSeconds, {VoidCallback? onCompleted}) {
+    if (_currentStepId == stepId && _status != TimerStatus.idle) {
+      _onCompleted = onCompleted;
+      if (_status == TimerStatus.paused) {
+        resume();
+      }
+      return;
+    }
     _cancelTimer();
+    _currentStepId = stepId;
+    _currentStepName = stepName;
     _totalSeconds = durationSeconds;
     _secondsRemaining = durationSeconds;
     _status = TimerStatus.running;
     _onCompleted = onCompleted;
+    _notificationSent = false;
     notifyListeners();
     _runTimer();
   }
@@ -72,6 +96,7 @@ class TimerService extends ChangeNotifier {
     _cancelTimer();
     _secondsRemaining = _totalSeconds;
     _status = TimerStatus.idle;
+    _notificationSent = false;
     notifyListeners();
   }
 
@@ -81,6 +106,9 @@ class TimerService extends ChangeNotifier {
     _secondsRemaining = 0;
     _status = TimerStatus.idle;
     _onCompleted = null;
+    _currentStepId = null;
+    _currentStepName = null;
+    _notificationSent = false;
     notifyListeners();
   }
 
@@ -93,11 +121,21 @@ class TimerService extends ChangeNotifier {
         _status = TimerStatus.completed;
         notifyListeners();
         _onCompleted?.call();
+        _triggerNotification();
         return;
       }
       _secondsRemaining--;
       notifyListeners();
     });
+  }
+
+  void _triggerNotification() {
+    if (!_notificationSent) {
+      _notificationSent = true;
+      NotificationService().showTimerCompleteNotification(
+        stepName: _currentStepName ?? 'Bước nấu',
+      );
+    }
   }
 
   void _cancelTimer() {

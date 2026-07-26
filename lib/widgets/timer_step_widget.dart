@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/step_model.dart';
 import '../services/timer_service.dart';
-import '../services/notification_service.dart';
 import 'app_image.dart';
 import 'app_theme.dart';
 import 'step_block_widget.dart';
@@ -33,8 +32,6 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
   late AnimationController _shimmerController;
   late Animation<double> _shimmerAnim;
 
-  bool _notificationSent = false;
-
   @override
   void initState() {
     super.initState();
@@ -51,10 +48,11 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final timerService = context.read<TimerService>();
       timerService.init(
+        widget.step.id,
+        widget.step.name,
         widget.step.durationSeconds ?? 60,
         onCompleted: _onTimerCompleted,
       );
-      _notificationSent = false;
     });
   }
 
@@ -64,19 +62,17 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
     if (oldWidget.step.id != widget.step.id) {
       final timerService = context.read<TimerService>();
       timerService.init(
+        widget.step.id,
+        widget.step.name,
         widget.step.durationSeconds ?? 60,
         onCompleted: _onTimerCompleted,
       );
-      _notificationSent = false;
     }
   }
 
   void _onTimerCompleted() {
-    if (!_notificationSent) {
-      _notificationSent = true;
-      NotificationService().showTimerCompleteNotification(
-        stepName: widget.step.name,
-      );
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -96,14 +92,28 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
       timer.pause();
     } else if (timer.isPaused) {
       timer.resume();
-      _notificationSent = false;
     } else {
       timer.start(
+        widget.step.id,
+        widget.step.name,
         widget.step.durationSeconds ?? 60,
         onCompleted: _onTimerCompleted,
       );
-      _notificationSent = false;
     }
+  }
+
+  void _handleRestart(TimerService timer) {
+    timer.start(
+      widget.step.id,
+      widget.step.name,
+      widget.step.durationSeconds ?? 60,
+      onCompleted: _onTimerCompleted,
+    );
+  }
+
+  void _handleSkip(TimerService timer) {
+    timer.stop();
+    widget.onNext();
   }
 
   @override
@@ -146,8 +156,32 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
 
             const SizedBox(height: 16),
 
-            // ─── Smart single timer button ───
-            _buildSmartTimerButton(context, timer),
+            // ─── Smart timer controls row (Restart + Smart Button + Skip) ───
+            Row(
+              children: [
+                _buildCircularButton(
+                  icon: Icons.replay_rounded,
+                  onTap: timer.isIdle ? null : () => _handleRestart(timer),
+                  color: context.colors.surfaceElevated,
+                  iconColor: timer.isIdle
+                      ? context.colors.textHint
+                      : context.colors.primary,
+                  tooltip: 'Bắt đầu lại',
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildSmartTimerButton(context, timer),
+                ),
+                const SizedBox(width: 12),
+                _buildCircularButton(
+                  icon: Icons.skip_next_rounded,
+                  onTap: () => _handleSkip(timer),
+                  color: context.colors.surfaceElevated,
+                  iconColor: context.colors.textPrimary,
+                  tooltip: 'Bỏ qua',
+                ),
+              ],
+            ),
 
             // Back navigation (optional)
             if (widget.onPrevious != null) ...[
@@ -180,6 +214,42 @@ class _TimerStepWidgetState extends State<TimerStepWidget>
       fit: BoxFit.cover,
       borderRadius: BorderRadius.circular(16),
       placeholder: const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildCircularButton({
+    required IconData icon,
+    required VoidCallback? onTap,
+    required Color color,
+    required Color iconColor,
+    String? tooltip,
+  }) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: context.colors.divider,
+          width: 1.5,
+        ),
+      ),
+      child: ClipOval(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Center(
+              child: Icon(
+                icon,
+                size: 24,
+                color: iconColor,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

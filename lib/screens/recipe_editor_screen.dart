@@ -208,50 +208,29 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
         elevation: 0,
         actions: [
           if (!_isPreviewMode && _pages.isNotEmpty && _pages[_selectedPageIndex].type == 'timer')
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0, top: 8.0, bottom: 8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.colors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.timer, size: 20),
-                  color: context.colors.primary,
-                  tooltip: 'Cài đặt thời gian',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  onPressed: _showTimerSettingsDialog,
-                ),
-              ),
+            IconButton(
+              icon: const Icon(Icons.timer_outlined, size: 24),
+              color: context.colors.textPrimary,
+              tooltip: 'Cài đặt thời gian',
+              onPressed: _showTimerSettingsDialog,
             ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0, top: 8.0, bottom: 8.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _isPreviewMode ? context.colors.primary : context.colors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: IconButton(
-                icon: Icon(_isPreviewMode ? Icons.edit_rounded : Icons.preview_rounded, size: 20),
-                color: _isPreviewMode ? Colors.white : context.colors.primary,
-                tooltip: _isPreviewMode ? 'Chỉnh sửa' : 'Xem trước',
-                constraints: const BoxConstraints(),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                onPressed: () {
-                  setState(() {
-                    _isPreviewMode = !_isPreviewMode;
-                    if (_isPreviewMode) {
-                      _selectedBlockId = null;
-                      _selectedColIdx = null;
-                      _focusedStyleBlock = null;
-                    }
-                  });
-                  FocusScope.of(context).unfocus();
-                },
-              ),
-            ),
+          IconButton(
+            icon: Icon(_isPreviewMode ? Icons.edit_outlined : Icons.visibility_outlined, size: 24),
+            color: _isPreviewMode ? context.colors.primary : context.colors.textPrimary,
+            tooltip: _isPreviewMode ? 'Chỉnh sửa' : 'Xem trước',
+            onPressed: () {
+              setState(() {
+                _isPreviewMode = !_isPreviewMode;
+                if (_isPreviewMode) {
+                  _selectedBlockId = null;
+                  _selectedColIdx = null;
+                  _focusedStyleBlock = null;
+                }
+              });
+              FocusScope.of(context).unfocus();
+            },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: GestureDetector(
@@ -655,39 +634,212 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
     int currentSec = currentDuration % 60;
     
     final minController = TextEditingController(text: currentMin.toString());
-    final secController = TextEditingController(text: currentSec.toString());
+    final secController = TextEditingController(text: currentSec.toString().padLeft(2, '0'));
+
+    Widget buildPresetChip(
+      String label,
+      int secondsToAdd, {
+      bool isReset = false,
+    }) {
+      return InkWell(
+        onTap: () {
+          if (isReset) {
+            minController.text = '0';
+            secController.text = '00';
+            return;
+          }
+          
+          int currentMinVal = int.tryParse(minController.text) ?? 0;
+          int currentSecVal = int.tryParse(secController.text) ?? 0;
+          int totalSec = (currentMinVal * 60) + currentSecVal + secondsToAdd;
+          
+          int newMin = totalSec ~/ 60;
+          int newSec = totalSec % 60;
+          
+          minController.text = newMin.toString();
+          secController.text = newSec.toString().padLeft(2, '0');
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isReset
+                ? context.colors.error.withValues(alpha: 0.1)
+                : context.colors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isReset
+                  ? context.colors.error.withValues(alpha: 0.2)
+                  : context.colors.primary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isReset ? context.colors.error : context.colors.primary,
+            ),
+          ),
+        ),
+      );
+    }
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surfaceElevated,
-        title: Text('Thiết lập thời gian', style: context.textTheme.headlineMedium),
-        content: Row(
-          mainAxisSize: MainAxisSize.min,
+        backgroundColor: context.colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
           children: [
-            Expanded(
-              child: TextField(
-                controller: minController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'Phút'),
+            Icon(Icons.timer_outlined, color: context.colors.primary, size: 24),
+            const SizedBox(width: 10),
+            Text('Thiết lập thời gian', style: context.textTheme.headlineMedium),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Đặt thời lượng đếm ngược cho bước nấu ăn này.',
+              style: context.textTheme.bodySmall!.copyWith(
+                color: context.colors.textSecondary,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextField(
-                controller: secController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                onChanged: (val) {
-                  int? s = int.tryParse(val);
-                  if (s != null && s > 59) {
-                    secController.text = '59';
-                    secController.selection = TextSelection.fromPosition(const TextPosition(offset: 2));
-                  }
-                },
-                decoration: const InputDecoration(labelText: 'Giây'),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Minutes
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    controller: minController,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: context.textTheme.displayMedium!.copyWith(
+                      fontSize: 36,
+                      color: context.colors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      filled: true,
+                      fillColor: context.colors.surfaceElevated,
+                      hintText: '00',
+                      hintStyle: TextStyle(color: context.colors.textHint),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      counterText: '',
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    ':',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ),
+                // Seconds
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    controller: secController,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: context.textTheme.displayMedium!.copyWith(
+                      fontSize: 36,
+                      color: context.colors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(2),
+                    ],
+                    onChanged: (val) {
+                      int? s = int.tryParse(val);
+                      if (s != null && s > 59) {
+                        secController.text = '59';
+                        secController.selection = TextSelection.fromPosition(const TextPosition(offset: 2));
+                      }
+                    },
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      filled: true,
+                      fillColor: context.colors.surfaceElevated,
+                      hintText: '00',
+                      hintStyle: TextStyle(color: context.colors.textHint),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      counterText: '',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  child: Text(
+                    'Phút',
+                    textAlign: TextAlign.center,
+                    style: context.textTheme.labelMedium!.copyWith(
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 44),
+                SizedBox(
+                  width: 80,
+                  child: Text(
+                    'Giây',
+                    textAlign: TextAlign.center,
+                    style: context.textTheme.labelMedium!.copyWith(
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              'Phím tắt thời gian nhanh',
+              style: context.textTheme.labelMedium!.copyWith(
+                fontWeight: FontWeight.bold,
+                color: context.colors.textSecondary,
               ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                buildPresetChip('+30s', 30),
+                buildPresetChip('+1phút', 60),
+                buildPresetChip('+5phút', 300),
+                buildPresetChip('Đặt lại', 0, isReset: true),
+              ],
             ),
           ],
         ),
@@ -697,7 +849,11 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: context.colors.primary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.colors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
             onPressed: () {
               int m = int.tryParse(minController.text) ?? 0;
               int s = int.tryParse(secController.text) ?? 0;
@@ -706,7 +862,10 @@ class _RecipeEditorScreenState extends State<RecipeEditorScreen> {
               });
               Navigator.pop(context);
             },
-            child: const Text('Lưu'),
+            child: const Text(
+              'Lưu',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

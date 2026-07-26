@@ -39,7 +39,7 @@ class StepCard extends StatelessWidget {
           // Content
           Expanded(child: _buildContent()),
           // Actions
-          if (onEdit != null || onDelete != null) _buildActions(),
+          if (onEdit != null || onDelete != null) _buildActions(context),
           if (isDraggable) ...[
             const SizedBox(width: 4),
             const Icon(
@@ -176,7 +176,7 @@ class StepCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
