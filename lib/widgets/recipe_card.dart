@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/recipe.dart';
+import '../providers/favorites_provider.dart';
 import 'app_image.dart';
 import 'app_theme.dart';
 
@@ -9,6 +11,10 @@ class RecipeCard extends StatefulWidget {
   final VoidCallback? onLongPress;
   final int stepCount;
   final bool isLarge; // For Bento grid
+  /// Optional prefix to make Hero tags unique across different tabs/screens.
+  /// Pass a unique value (e.g. 'home', 'favorites') to avoid duplicate-Hero
+  /// errors when multiple tabs are alive simultaneously in an IndexedStack.
+  final String heroTagPrefix;
 
   const RecipeCard({
     super.key,
@@ -17,6 +23,7 @@ class RecipeCard extends StatefulWidget {
     this.onLongPress,
     this.stepCount = 0,
     this.isLarge = false,
+    this.heroTagPrefix = 'default',
   });
 
   @override
@@ -54,10 +61,10 @@ class _RecipeCardState extends State<RecipeCard> {
           decoration: BoxDecoration(
             color: context.colors.card,
             borderRadius: BorderRadius.circular(widget.isLarge ? 32 : 24),
-            border: Border.all(color: context.colors.divider.withOpacity(0.6), width: 1),
+            border: Border.all(color: context.colors.divider.withValues(alpha: 0.6), width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: widget.isLarge ? 40 : 20,
                 offset: Offset(0, widget.isLarge ? 16 : 8),
               ),
@@ -107,7 +114,7 @@ class _RecipeCardState extends State<RecipeCard> {
                           label: '${widget.stepCount} bước',
                           color: context.colors.primary,
                         ),
-                        if (widget.recipe.ingredients.isNotEmpty) 
+                        if (widget.recipe.ingredients.isNotEmpty)
                           _buildChip(
                             icon: Icons.restaurant_menu_rounded,
                             label: '${widget.recipe.ingredients.length} nguyên liệu',
@@ -117,12 +124,11 @@ class _RecipeCardState extends State<RecipeCard> {
                           _buildChip(
                             icon: Icons.timer_outlined,
                             label: widget.recipe.estimatedTime!,
-                            color: context.colors.primary, // or any color you prefer
+                            color: context.colors.primary,
                           ),
                         _buildDifficultyChip(widget.recipe.difficulty, context),
                       ],
                     ),
-
                   ],
                 ),
               ),
@@ -135,22 +141,63 @@ class _RecipeCardState extends State<RecipeCard> {
 
   Widget _buildImage() {
     final placeholder = _placeholderImage(context);
-    if (widget.recipe.imagePath != null && widget.recipe.imagePath!.isNotEmpty) {
-      return Hero(
-        tag: 'recipe-${widget.recipe.id}',
-        child: SizedBox(
-          height: widget.isLarge ? 240 : 180,
-          width: double.infinity,
-          child: AppImage(
-            imagePath: widget.recipe.imagePath,
-            height: widget.isLarge ? 240 : 180,
-            fit: BoxFit.cover,
-            placeholder: placeholder,
+    final imageContent = widget.recipe.imagePath != null && widget.recipe.imagePath!.isNotEmpty
+        ? Hero(
+            tag: '${widget.heroTagPrefix}-recipe-${widget.recipe.id}',
+            child: SizedBox(
+              height: widget.isLarge ? 240 : 180,
+              width: double.infinity,
+              child: AppImage(
+                imagePath: widget.recipe.imagePath,
+                height: widget.isLarge ? 240 : 180,
+                fit: BoxFit.cover,
+                placeholder: placeholder,
+              ),
+            ),
+          )
+        : placeholder;
+
+    return Stack(
+      children: [
+        imageContent,
+        // Favorite button — top-right corner
+        Positioned(
+          top: 10,
+          right: 10,
+          child: Consumer<FavoritesProvider>(
+            builder: (_, favProvider, __) {
+              final isFav = favProvider.isFavorite(widget.recipe.id);
+              return GestureDetector(
+                onTap: () {
+                  favProvider.toggleFavorite(widget.recipe.id);
+                },
+                // Absorb tap so it doesn't trigger the card's onTap
+                child: AbsorbPointer(
+                  absorbing: false,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: isFav
+                          ? Colors.red.withValues(alpha: 0.92)
+                          : Colors.black.withValues(alpha: 0.30),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isFav ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+                      size: 17,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
-      );
-    }
-    return placeholder;
+      ],
+    );
   }
 
   Widget _placeholderImage(BuildContext context) {
@@ -164,7 +211,7 @@ class _RecipeCardState extends State<RecipeCard> {
         child: Icon(
           Icons.restaurant_rounded,
           size: 48,
-          color: context.colors.textHint.withOpacity(0.3),
+          color: context.colors.textHint.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -178,8 +225,8 @@ class _RecipeCardState extends State<RecipeCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(999), // Pill shape
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

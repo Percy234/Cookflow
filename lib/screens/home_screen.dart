@@ -21,7 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  _ViewMode _viewMode = _ViewMode.list;
+  _ViewMode _viewMode = _ViewMode.grid;
 
   @override
   Widget build(BuildContext context) {
@@ -343,6 +343,7 @@ class _HomeScreenState extends State<HomeScreen>
                   recipe: chunk[0],
                   stepCount: _stepCount(chunk[0]),
                   isLarge: true,
+                  heroTagPrefix: 'home',
                   onTap: () => _openRecipeDetail(context, chunk[0]),
                   onLongPress: () =>
                       _showRecipeOptions(context, chunk[0], provider),
@@ -419,6 +420,7 @@ class _HomeScreenState extends State<HomeScreen>
       recipe: recipe,
       stepCount: _stepCount(recipe),
       isLarge: false,
+      heroTagPrefix: 'home',
       onTap: () => _openRecipeDetail(context, recipe),
       onLongPress: () => _showRecipeOptions(context, recipe, provider),
     );

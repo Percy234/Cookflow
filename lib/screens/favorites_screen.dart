@@ -40,6 +40,7 @@ class FavoritesScreen extends StatelessWidget {
                           children: [
                             RecipeCard(
                               recipe: recipe,
+                              heroTagPrefix: 'favorites',
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(

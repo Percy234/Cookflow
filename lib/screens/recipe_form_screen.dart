@@ -356,7 +356,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
   Widget _buildCategorySelector() {
     final categories = [
-      'Chiên', 'Xào', 'Luộc', 'Hấp', 'Hầm', 'Kho', 'Nướng', 'Nấu', 'Khác'
+      'Chiên', 'Xào', 'Luộc', 'Hấp', 'Hầm', 'Kho', 'Nướng', 'Nấu', 'Nước', 'Khác'
     ];
     return Wrap(
       spacing: 8,
