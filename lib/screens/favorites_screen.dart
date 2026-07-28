@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/recipe_provider.dart';
 import '../widgets/app_theme.dart';
-import '../widgets/recipe_card.dart';
+import '../widgets/app_image.dart';
+import '../models/recipe.dart';
 import 'recipe_detail_screen.dart';
 
 class FavoritesScreen extends StatelessWidget {
@@ -29,48 +30,18 @@ class FavoritesScreen extends StatelessWidget {
                     return _buildEmptyState(context);
                   }
 
-                  return ListView.builder(
+                  return GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 0.58,
+                    ),
                     itemCount: favoriteRecipes.length,
                     itemBuilder: (context, i) {
                       final recipe = favoriteRecipes[i];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Stack(
-                          children: [
-                            RecipeCard(
-                              recipe: recipe,
-                              heroTagPrefix: 'favorites',
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => RecipeDetailScreen(recipeId: recipe.id),
-                                ),
-                              ),
-                            ),
-                            // Favorite indicator badge
-                            Positioned(
-                              top: 12,
-                              right: 12,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.red.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.favorite_rounded,
-                                  size: 14,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _buildGridCard(context, recipe);
                     },
                   );
                 },
@@ -88,39 +59,12 @@ class FavoritesScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'Yêu thích',
-                style: context.textTheme.displayMedium!.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Consumer2<FavoritesProvider, RecipeProvider>(
-                builder: (_, favProvider, recipeProvider, __) {
-                  final count = recipeProvider.recipes
-                      .where((r) => favProvider.isFavorite(r.id))
-                      .length;
-                  if (count == 0) return const SizedBox.shrink();
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '$count',
-                      style: context.textTheme.labelMedium!.copyWith(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
+          Text(
+            'Yêu thích',
+            style: context.textTheme.displayMedium!.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -167,6 +111,151 @@ class FavoritesScreen extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGridCard(BuildContext context, Recipe recipe) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RecipeDetailScreen(recipeId: recipe.id),
+        ),
+      ),
+      child: Container(
+        color: Colors.transparent, // Nền trong suốt chứa toàn bộ card
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Nền màu 1f1f1f
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1F1F1F)
+                    : const Color(0xFFF7F2E9),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              clipBehavior: Clip.antiAlias, // Cắt viền ảnh theo bo góc của container
+              padding: const EdgeInsets.only(bottom: 6), // Chỉ chừa phần dưới cho text
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    children: [
+                      // Ảnh đè sát viền trên, trái, phải
+                      AspectRatio(
+                        aspectRatio: 1,
+                        child: recipe.imagePath != null && recipe.imagePath!.isNotEmpty
+                            ? AppImage(
+                                imagePath: recipe.imagePath,
+                                fit: BoxFit.cover,
+                                placeholder: Container(color: context.colors.surfaceElevated),
+                              )
+                            : Container(
+                                color: context.colors.surfaceElevated,
+                                child: Icon(Icons.restaurant, color: context.colors.textHint),
+                              ),
+                      ),
+                      // Góc trên trái: Độ khó (badge trắng)
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: _buildDifficultyBadge(context, recipe.difficulty),
+                      ),
+                      // Góc trên phải: Nút xoá yêu thích
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Consumer<FavoritesProvider>(
+                          builder: (_, favProvider, __) {
+                            return GestureDetector(
+                              onTap: () => favProvider.toggleFavorite(recipe.id),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.favorite_rounded,
+                                  color: Colors.red,
+                                  size: 16,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Thông tin phân loại (thay cho độ khó cũ)
+                  Text(
+                    recipe.category?.isNotEmpty == true ? recipe.category! : 'Món ăn',
+                    style: context.textTheme.labelSmall!.copyWith(
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 2),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Tên món nhô ra bên dưới (làm to lên)
+            Expanded(
+              child: Text(
+                recipe.name,
+                style: context.textTheme.labelMedium!.copyWith(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDifficultyBadge(BuildContext context, int difficulty) {
+    String label;
+    Color color;
+    switch (difficulty) {
+      case 1:
+        label = 'Trung bình';
+        color = Colors.orange.shade800;
+        break;
+      case 2:
+        label = 'Khó';
+        color = Colors.red.shade700;
+        break;
+      case 0:
+      default:
+        label = 'Dễ';
+        color = Colors.green.shade700;
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w800,
+          fontSize: 9,
+        ),
       ),
     );
   }

@@ -75,13 +75,45 @@ class _MainShellState extends State<MainShell> {
           child: SafeArea(
             top: false,
             child: SizedBox(
-              height: 72,
-              child: Row(
-                children: List.generate(_navItems.length, (index) {
-                  return Expanded(
-                    child: _buildNavItem(context, index),
+              height: 60,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemWidth = constraints.maxWidth / _navItems.length;
+                  return Stack(
+                    children: [
+                      Row(
+                        children: List.generate(_navItems.length, (index) {
+                          return Expanded(
+                            child: _buildNavItem(context, index),
+                          );
+                        }),
+                      ),
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        top: 0,
+                        left: _currentIndex * itemWidth,
+                        child: SizedBox(
+                          width: itemWidth,
+                          child: Center(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              width: 52,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: _navItems[_currentIndex].label == 'Yêu thích'
+                                    ? Colors.red
+                                    : context.colors.primary,
+                                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   );
-                }),
+                },
               ),
             ),
           ),
@@ -100,41 +132,27 @@ class _MainShellState extends State<MainShell> {
     return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Container(
+        color: Colors.transparent,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // Icon with active indicator pill
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? activeColor.withValues(alpha: 0.12)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                isActive ? item.activeIcon : item.icon,
-                size: 22,
-                color: isActive ? activeColor : context.colors.textHint,
-              ),
+            Icon(
+              isActive ? item.activeIcon : item.icon,
+              size: 24,
+              color: isActive ? activeColor : context.colors.textHint,
             ),
-            const SizedBox(height: 3),
-            // Label
+            const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: context.textTheme.labelSmall!.copyWith(
                 color: isActive ? activeColor : context.colors.textHint,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
-                fontSize: 10.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 11.5,
               ),
               child: Text(item.label),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
