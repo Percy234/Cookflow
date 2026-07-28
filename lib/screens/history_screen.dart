@@ -60,7 +60,7 @@ class HistoryScreen extends StatelessWidget {
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: _buildHistoryCard(context, recipe, entry, recipeProvider),
+                        child: _buildHistoryCard(context, recipe, entry, historyProvider, i),
                       );
                     },
                   );
@@ -76,166 +76,176 @@ class HistoryScreen extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Lịch sử',
-                  style: context.textTheme.displayMedium!.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Những công thức bạn đã thực hiện',
-                  style: context.textTheme.bodyMedium!.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ],
+          Text(
+            'Lịch sử',
+            style: context.textTheme.displayMedium!.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
             ),
           ),
-          Consumer<HistoryProvider>(
-            builder: (context, histProvider, _) {
-              if (histProvider.entries.isEmpty) return const SizedBox.shrink();
-              return TextButton.icon(
-                onPressed: () => _confirmClear(context, histProvider),
-                icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                label: const Text('Xóa'),
-                style: TextButton.styleFrom(
-                  foregroundColor: context.colors.textHint,
-                ),
-              );
-            },
+          const SizedBox(height: 4),
+          Text(
+            'Những công thức bạn đã thực hiện',
+            style: context.textTheme.bodyMedium!.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _confirmClear(BuildContext context, HistoryProvider provider) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Xóa lịch sử'),
-        content: const Text('Bạn có chắc muốn xóa toàn bộ lịch sử thực hiện?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Xóa'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await provider.clearHistory();
-    }
-  }
-
-  Widget _buildHistoryCard(BuildContext context, dynamic recipe, HistoryEntry entry, RecipeProvider recipeProvider) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RecipeDetailScreen(recipeId: recipe.id),
-        ),
-      ),
-      child: Container(
+  Widget _buildHistoryCard(
+    BuildContext context,
+    dynamic recipe,
+    HistoryEntry entry,
+    HistoryProvider historyProvider,
+    int index,
+  ) {
+    return Dismissible(
+      key: Key('${entry.recipeId}_${entry.executedAt.millisecondsSinceEpoch}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => historyProvider.removeEntryAt(index),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: context.colors.card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: context.colors.divider),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
+      ),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RecipeDetailScreen(recipeId: recipe.id),
+          ),
+        ),
+        child: Stack(
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: context.colors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: context.colors.divider),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: SizedBox(
-                width: 80,
-                height: 80,
-                child: AppImage(
-                  imagePath: recipe.imagePath,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recipe.name,
-                      style: context.textTheme.bodyLarge!.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: context.colors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  // Ảnh được cách viền card bởi padding (bo góc 4px ở 3 góc, 12px ở dưới phải)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(4),
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(12),
                     ),
-                    const SizedBox(height: 4),
-                    if (recipe.category != null)
-                      Text(
-                        recipe.category!,
-                        style: context.textTheme.bodySmall!.copyWith(
-                          color: context.colors.primary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    child: SizedBox(
+                      width: 76,
+                      height: 76,
+                      child: AppImage(
+                        imagePath: recipe.imagePath,
+                        fit: BoxFit.cover,
                       ),
-                    const SizedBox(height: 4),
-                    Row(
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  // Tên món và thời gian (căn giữa dọc)
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          size: 13,
-                          color: context.colors.textHint,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          _formatTimestamp(entry.executedAt),
-                          style: context.textTheme.bodySmall!.copyWith(
-                            color: context.colors.textHint,
+                          recipe.name,
+                          style: context.textTheme.headlineMedium!.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: context.colors.textPrimary,
+                            fontSize: 18,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 14,
+                              color: context.colors.textHint,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatTimestamp(entry.executedAt),
+                              style: context.textTheme.bodySmall!.copyWith(
+                                color: context.colors.textHint,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  // Icon loại món (màu đậm hơn, nhận diện rõ nét)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Icon(
+                      _getCategoryIcon(recipe.category),
+                      size: 58,
+                      color: context.colors.textSecondary.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: context.colors.textHint,
+            // Nút xoá nhanh trên từng card
+            Positioned(
+              top: 6,
+              right: 6,
+              child: GestureDetector(
+                onTap: () => historyProvider.removeEntryAt(index),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: context.colors.surfaceElevated.withValues(alpha: 0.8),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 14,
+                    color: context.colors.textHint,
+                  ),
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String? category) {
+    if (category == null || category.isEmpty) return Icons.restaurant;
+    final lower = category.toLowerCase();
+    if (lower.contains('nấu') || lower.contains('canh')) return Icons.soup_kitchen_rounded;
+    if (lower.contains('nướng')) return Icons.outdoor_grill_rounded;
+    if (lower.contains('hấp')) return Icons.set_meal_rounded;
+    if (lower.contains('chiên') || lower.contains('xào')) return Icons.rice_bowl_rounded;
+    if (lower.contains('bánh')) return Icons.cake_rounded;
+    if (lower.contains('nước') || lower.contains('uống')) return Icons.local_cafe_rounded;
+    if (lower.contains('salad') || lower.contains('trộn')) return Icons.eco_rounded;
+    return Icons.restaurant;
   }
 
   Widget _buildDeletedCard(BuildContext context, HistoryEntry entry) {

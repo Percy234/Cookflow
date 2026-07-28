@@ -64,6 +64,14 @@ class HistoryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> removeEntryAt(int index) async {
+    if (index >= 0 && index < _entries.length) {
+      _entries.removeAt(index);
+      await _save();
+      notifyListeners();
+    }
+  }
+
   Future<void> clearHistory() async {
     _entries.clear();
     await _save();

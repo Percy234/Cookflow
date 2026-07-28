@@ -137,7 +137,7 @@ class FavoritesScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               clipBehavior: Clip.antiAlias, // Cắt viền ảnh theo bo góc của container
-              padding: const EdgeInsets.only(bottom: 6), // Chỉ chừa phần dưới cho text
+              padding: const EdgeInsets.only(bottom: 10), // Tăng khoảng trống bên dưới ảnh
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -172,7 +172,9 @@ class FavoritesScreen extends StatelessWidget {
                             return GestureDetector(
                               onTap: () => favProvider.toggleFavorite(recipe.id),
                               child: Container(
-                                padding: const EdgeInsets.all(4),
+                                height: 24,
+                                width: 24,
+                                alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   shape: BoxShape.circle,
@@ -180,7 +182,7 @@ class FavoritesScreen extends StatelessWidget {
                                 child: const Icon(
                                   Icons.favorite_rounded,
                                   color: Colors.red,
-                                  size: 16,
+                                  size: 14,
                                 ),
                               ),
                             );
@@ -189,14 +191,14 @@ class FavoritesScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  // Thông tin phân loại (thay cho độ khó cũ)
+                  const SizedBox(height: 8),
+                  // Thông tin phân loại (chữ to hơn)
                   Text(
                     recipe.category?.isNotEmpty == true ? recipe.category! : 'Món ăn',
                     style: context.textTheme.labelSmall!.copyWith(
                       color: context.colors.textSecondary,
                       fontWeight: FontWeight.w600,
-                      fontSize: 10,
+                      fontSize: 12,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -205,12 +207,12 @@ class FavoritesScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Tên món nhô ra bên dưới (làm to lên)
+            // Tên món nhô ra bên dưới
             Expanded(
               child: Text(
                 recipe.name,
                 style: context.textTheme.labelMedium!.copyWith(
-                  color: Colors.black,
+                  color: context.colors.textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -244,7 +246,9 @@ class FavoritesScreen extends StatelessWidget {
         break;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      height: 24,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(6),
