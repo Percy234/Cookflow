@@ -314,10 +314,10 @@ class AppTheme {
     primary: _primary,
     primaryLight: _primaryLight,
     primaryDark: _primaryDark,
-    background: const Color(0xFF050505),
-    surface: const Color(0xFF141414),
-    surfaceElevated: const Color(0xFF1F1F1F),
-    card: const Color(0xFF141414),
+    background: const Color(0xFF0F1115),
+    surface: const Color(0xFF181A20),
+    surfaceElevated: const Color(0xFF222630),
+    card: const Color(0xFF181A20),
     textPrimary: const Color(0xFFF5F5F5),
     textSecondary: const Color(0xFFA3A3A3),
     textHint: const Color(0xFF525252),
@@ -328,16 +328,16 @@ class AppTheme {
     timerActive: _primary,
     timerPaused: const Color(0xFF525252),
     timerCompleted: const Color(0xFF4CAF50),
-    divider: const Color(0xFF262626),
+    divider: const Color(0xFF262A36),
   );
 
   static final AppColorsExtension _lightColors = AppColorsExtension(
     primary: _primary,
     primaryLight: _primaryLight,
     primaryDark: _primaryDark,
-    background: const Color(0xFFFFFFFF),
-    surface: const Color(0xFFF9F9F9),
-    surfaceElevated: const Color(0xFFF0F0F0),
+    background: const Color(0xFFF6F7F9),
+    surface: const Color(0xFFFFFFFF),
+    surfaceElevated: const Color(0xFFEEF0F4),
     card: const Color(0xFFFFFFFF),
     textPrimary: const Color(0xFF111111),
     textSecondary: const Color(0xFF737373),
@@ -349,7 +349,7 @@ class AppTheme {
     timerActive: _primary,
     timerPaused: const Color(0xFF737373),
     timerCompleted: const Color(0xFF28A745),
-    divider: const Color(0xFFE5E5E5),
+    divider: const Color(0xFFE5E7EB),
   );
 
   static ThemeData get darkTheme => _buildTheme(Brightness.dark, _darkColors);

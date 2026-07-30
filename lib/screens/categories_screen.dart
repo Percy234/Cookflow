@@ -49,13 +49,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     List<Recipe> result = all;
     if (_selectedCategory != null) {
       result = result
-          .where((r) => (r.category ?? '') == _selectedCategory)
+          .where((r) => (r.category ?? '').toLowerCase() == _selectedCategory!.toLowerCase())
           .toList();
     }
     if (_searchQuery.isNotEmpty) {
       result = result
-          .where((r) =>
-              (r.name ?? '').toLowerCase().contains(_searchQuery))
+          .where((r) => r.name.toLowerCase().contains(_searchQuery))
           .toList();
     }
     return result;

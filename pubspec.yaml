@@ -1,7 +1,7 @@
 name: cookflow
 description: "CookFlow - Ứng dụng quản lý và thực hiện công thức nấu ăn theo Workflow."
 publish_to: 'none'
-version: 1.5.3+14
+version: 1.5.4+15
 
 environment:
   sdk: ^3.11.5
