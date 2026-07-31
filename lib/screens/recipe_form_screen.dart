@@ -6,6 +6,7 @@ import '../models/recipe.dart';
 import '../providers/recipe_provider.dart';
 import '../widgets/app_theme.dart';
 import '../widgets/app_image.dart';
+import '../widgets/rich_text_controller.dart';
 import 'recipe_editor_screen.dart';
 
 class RecipeFormScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class RecipeFormScreen extends StatefulWidget {
 class _RecipeFormScreenState extends State<RecipeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _descController;
+  late RichTextEditingController _descController;
   String? _imagePath;
   int? _difficulty;
   String? _estimatedTime;
@@ -36,7 +37,8 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     super.initState();
     final r = widget.recipe;
     _nameController = TextEditingController(text: r?.name ?? '');
-    _descController = TextEditingController(text: r?.description ?? '');
+    _descController = RichTextEditingController(initialHtml: r?.description ?? '');
+    _descController.addListener(_onControllerStateChanged);
     _imagePath = r?.imagePath;
     _difficulty = r?.difficulty;
     _estimatedTime = r?.estimatedTime;
@@ -44,8 +46,13 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     _descriptionImages = r?.descriptionImages != null ? List.from(r!.descriptionImages) : [];
   }
 
+  void _onControllerStateChanged() {
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _descController.removeListener(_onControllerStateChanged);
     _nameController.dispose();
     _descController.dispose();
     super.dispose();
@@ -101,7 +108,7 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     }
 
     // Default Description: 'chưa có mô tả'
-    String description = _descController.text.trim();
+    String description = _descController.toFormattedString().trim();
     if (description.isEmpty) {
       description = 'chưa có mô tả';
     }
@@ -150,6 +157,92 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildFormattingToolbar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surfaceElevated,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(10),
+          topRight: Radius.circular(10),
+        ),
+        border: Border(
+          bottom: BorderSide(color: context.colors.divider.withValues(alpha: 0.6)),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildToolbarButton(
+              icon: Icons.format_bold_rounded,
+              tooltip: 'In đậm (B)',
+              isActive: _descController.activeStyle.bold,
+              onPressed: () => _descController.toggleBold(),
+            ),
+            _buildToolbarButton(
+              icon: Icons.format_italic_rounded,
+              tooltip: 'In nghiêng (I)',
+              isActive: _descController.activeStyle.italic,
+              onPressed: () => _descController.toggleItalic(),
+            ),
+            _buildToolbarButton(
+              icon: Icons.format_underlined_rounded,
+              tooltip: 'Gạch chân (U)',
+              isActive: _descController.activeStyle.underline,
+              onPressed: () => _descController.toggleUnderline(),
+            ),
+            _buildToolbarButton(
+              icon: Icons.strikethrough_s_rounded,
+              tooltip: 'Gạch ngang (S)',
+              isActive: _descController.activeStyle.strikethrough,
+              onPressed: () => _descController.toggleStrikethrough(),
+            ),
+            Container(
+              height: 18,
+              width: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              color: context.colors.divider,
+            ),
+            _buildToolbarButton(
+              icon: Icons.format_clear_rounded,
+              tooltip: 'Xóa định dạng',
+              isActive: false,
+              onPressed: () => _descController.clearFormatting(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton({
+    required IconData icon,
+    required String tooltip,
+    required bool isActive,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        decoration: BoxDecoration(
+          color: isActive ? context.colors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: IconButton(
+          icon: Icon(icon, size: 18),
+          color: isActive ? Colors.white : context.colors.textPrimary,
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.all(6),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          onPressed: onPressed,
+        ),
+      ),
+    );
   }
 
   Widget _buildDifficultySelector() {
@@ -517,22 +610,44 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
             const SizedBox(height: 20),
 
             // ─── 5. Mô tả ───
-            Text('Mô tả', style: titleStyle),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _descController,
-              style: context.textTheme.bodyMedium,
-              maxLines: 5,
-              decoration: InputDecoration(
-                hintText: 'Mô tả ngắn về món ăn này...',
-                hintStyle: TextStyle(color: context.colors.textHint, fontSize: 13),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                filled: true,
-                fillColor: context.colors.surfaceElevated,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Mô tả', style: titleStyle),
+                Text(
+                  'Định dạng cơ bản',
+                  style: TextStyle(fontSize: 11, color: context.colors.textHint),
                 ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: context.colors.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: context.colors.divider),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  _buildFormattingToolbar(),
+                  TextFormField(
+                    controller: _descController,
+                    style: context.textTheme.bodyMedium,
+                    minLines: 8,
+                    maxLines: 15,
+                    decoration: InputDecoration(
+                      hintText: 'Mô tả ngắn về món ăn này...',
+                      hintStyle: TextStyle(color: context.colors.textHint, fontSize: 13),
+                      contentPadding: const EdgeInsets.all(12),
+                      filled: true,
+                      fillColor: context.colors.surfaceElevated,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  ),
+                ],
               ),
             ),
 

@@ -4,6 +4,7 @@ import '../models/recipe.dart';
 import '../providers/favorites_provider.dart';
 import 'app_image.dart';
 import 'app_theme.dart';
+import 'formatted_text.dart';
 
 class RecipeCard extends StatefulWidget {
   final Recipe recipe;
@@ -88,8 +89,8 @@ class _RecipeCardState extends State<RecipeCard> {
                     ),
                     if (widget.recipe.description.isNotEmpty && widget.isLarge) ...[
                       const SizedBox(height: 8),
-                      Text(
-                        widget.recipe.description,
+                      FormattedText(
+                        text: widget.recipe.description,
                         style: context.textTheme.bodyMedium,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -97,8 +98,8 @@ class _RecipeCardState extends State<RecipeCard> {
                     ],
                     if (widget.recipe.description.isNotEmpty && !widget.isLarge) ...[
                       const SizedBox(height: 6),
-                      Text(
-                        widget.recipe.description,
+                      FormattedText(
+                        text: widget.recipe.description,
                         style: context.textTheme.bodySmall,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

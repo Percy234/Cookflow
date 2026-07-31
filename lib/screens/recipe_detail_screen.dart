@@ -5,6 +5,7 @@ import '../models/step_model.dart';
 import '../providers/recipe_provider.dart';
 import '../widgets/app_image.dart';
 import '../widgets/app_theme.dart';
+import '../widgets/formatted_text.dart';
 import 'execution_screen.dart';
 import 'recipe_editor_screen.dart';
 import 'recipe_flow_screen.dart';
@@ -216,8 +217,8 @@ class RecipeDetailScreen extends StatelessWidget {
 
 
   Widget _buildDescription(BuildContext context, Recipe recipe) {
-    return Text(
-      recipe.description,
+    return FormattedText(
+      text: recipe.description,
       style: context.textTheme.bodyLarge!.copyWith(color: context.colors.textSecondary),
     );
   }
